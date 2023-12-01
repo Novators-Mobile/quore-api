@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.auth import hash, jwt_handler
 from app.data import crud, models, schemas
 from app.data.database import session, engine, base
+import re
 
 base.metadata.create_all(engine)
 
@@ -28,12 +29,15 @@ async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depe
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register(response: Response, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
-    if sum(symbol.isdigit() for symbol in auth.password) == 0 or len(auth.password) < 8 or sum(symbol.isalpha() for symbol in auth.password) == 0:
+    if not re.match(r"\S+@\S+\.\S+" , auth.email):
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"error":"invalid password"}
+        return {"error":"invalid email"}
     if crud.get_user_by_email(db, auth.email):
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"error": "user exists"}
+    if sum(symbol.isdigit() for symbol in auth.password) == 0 or len(auth.password) < 8 or sum(symbol.isalpha() for symbol in auth.password) == 0:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"error":"invalid password"}
     res = crud.create_profile(db, profile)
     crud.create_auth(db, auth, res)
     return {"code": "success"}
