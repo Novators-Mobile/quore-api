@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, status, Depends
+from fastapi import FastAPI, Response, status, Depends, FileResponse
 from sqlalchemy.orm import Session
 from app.auth import hash, jwt_handler
 from app.data import crud, schemas
@@ -15,6 +15,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@api.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse("favicon.ico")
 
 @api.post("/api/login")
 async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
