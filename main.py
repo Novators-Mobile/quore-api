@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Response, status, Depends, FileResponse
+from fastapi import FastAPI, Response, status, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.auth import hash, jwt_handler
 from app.data import crud, schemas
