@@ -7,7 +7,7 @@ class ProfileCreate(BaseModel):
     sex: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Profile(BaseModel):
     id: int
@@ -17,4 +17,4 @@ class AuthCreate(BaseModel):
     password: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
