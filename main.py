@@ -8,7 +8,7 @@ import re, uvicorn, random, string
 
 base.metadata.create_all(engine)
 
-api = FastAPI()
+app = FastAPI()
 
 def get_db():
     db = session()
@@ -17,11 +17,11 @@ def get_db():
     finally:
         db.close()
 
-@api.get("/favicon.ico", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse("favicon.ico")
 
-@api.post("/api/login")
+@app.post("/api/login")
 async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not crud.get_user_by_email(db, auth.email):
         response.status_code = status.HTTP_401_UNAUTHORIZED
@@ -35,7 +35,7 @@ async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depe
     return {"access_token": jwt_handler.access_token(crud.get_id(db, auth.email)),
             "refresh_token": jwt_handler.refresh_token(crud.get_id(db, auth.email))}
 
-@api.post("/api/register", status_code=status.HTTP_201_CREATED)
+@app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register(response: Response, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not crud.get_verified(db, auth.email):
         return {"code": "success"}
@@ -56,19 +56,10 @@ async def register(response: Response, profile: schemas.ProfileCreate, auth: sch
     print(generated_id)
     return {"code": "success"}
 
-@api.get("/verify/{id}", status_code=status.HTTP_200_OK)
+@app.get("/verify/{id}", status_code=status.HTTP_200_OK)
 async def verify(response: Response, id: str, db: Session = Depends(get_db)):
     return crud.verify_auth(db, id)
 
-@api.post("/api/cards", status_code=status.HTTP_200_OK)
+@app.post("/api/cards", status_code=status.HTTP_200_OK)
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTBearer())):
     return crud.get_all_profiles(db)
-
-if __name__ == '__main__':
-    uvicorn.run("main:api",
-                host="0.0.0.0",
-                port=443,
-                reload=True,
-                ssl_keyfile="./novatorsmobile_ru.key", 
-                ssl_certfile="./novatorsmobile_ru.full.crt"
-                )
