@@ -15,8 +15,9 @@ class Profile(database.base):
 class Auth(database.base):
     __tablename__ = 'auth'
 
+    id = Column(String(), primary_key=True, unique=True)
+    verified = Column(Boolean())
     email = Column(String(), CheckConstraint("email LIKE '%@%.%'"), nullable=False, unique=True)
     hashed = Column(String(), nullable=False)   
-    user_id = Column(Integer(), ForeignKey("profiles.id"), primary_key=True)
+    user_id = Column(Integer(), ForeignKey("profiles.id"))
     user = relationship("Profile")
-

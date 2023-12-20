@@ -15,3 +15,10 @@ def access_token(id: int) -> str:
 def refresh_token(id: int) -> str:
     payload = {"expire": (datetime.today() + REFRESH_EXPIRE).ctime(), "id": id}
     return jwt.encode(payload, REFRESH_SECRET, ALGORITHM)
+
+def access_decode(token: str) -> dict:
+    try:
+        decoded_token = jwt.decode(token, ACCESS_SECRET, algorithms=[ALGORITHM])
+        return decoded_token if decoded_token["expire"] >= datetime.today().ctime() else None
+    except:
+        return {"error": "invalid token"}
