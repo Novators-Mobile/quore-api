@@ -81,6 +81,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |
+            "jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}"
+            "jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}"
+            "jwt_algorithm=${{ secrets.JWT_ALGORITHM }}"
+            "db_server=${{ secrets.DB_SERVER }}"
+            
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
