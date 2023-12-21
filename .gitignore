@@ -166,3 +166,4 @@ cython_debug/
 .vscode/
 
 docker-compose.yml
+config.json

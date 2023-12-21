@@ -58,7 +58,7 @@ async def register(response: Response, profile: schemas.ProfileCreate, auth: sch
 
 @app.get("/verify/{id}", status_code=status.HTTP_200_OK)
 async def verify(response: Response, id: str, db: Session = Depends(get_db)):
-    return crud.verify_auth(db, id)
+    return {"test": "you're not allowed"}
 
 @app.post("/api/cards", status_code=status.HTTP_200_OK)
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTBearer())):
