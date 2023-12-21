@@ -76,16 +76,16 @@ jobs:
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: .
+          build-args: |
+            "JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}"
+            "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}"
+            "JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}"
+            "DB_SERVER=${{ secrets.DB_SERVER }}"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          secrets: |
-            "jwt_access_secret=${{ secrets.JWT_ACCESS_SECRET }}"
-            "jwt_refresh_secret=${{ secrets.JWT_REFRESH_SECRET }}"
-            "jwt_algorithm=${{ secrets.JWT_ALGORITHM }}"
-            "db_server=${{ secrets.DB_SERVER }}"
             
 
       # Sign the resulting Docker image digest except on PRs.
