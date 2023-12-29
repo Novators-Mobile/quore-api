@@ -1,0 +1,18 @@
+version: '3'
+services:
+  api:
+    network_mode: "host"
+    container_name: quore
+    image: ghcr.io/novators-mobile/quore-api:main
+    ports:
+      - "80:80"
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config.json:/config.json
+    command: --interval 30 quore
+
+
+    
