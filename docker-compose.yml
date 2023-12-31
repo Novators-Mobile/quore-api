@@ -14,8 +14,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config.json:/config.json
     command: --interval 30 quore
-  db:
+  postgres:
     image: postgres:latest
+    container_name: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     expose:
