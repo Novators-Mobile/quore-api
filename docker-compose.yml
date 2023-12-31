@@ -3,8 +3,8 @@ services:
   api:
     container_name: quore
     image: ghcr.io/novators-mobile/quore-api:main
-    ports:
-      - "80:80"
+    expose:
+      - 80
     depends_on:
       - db
   watchtower:
