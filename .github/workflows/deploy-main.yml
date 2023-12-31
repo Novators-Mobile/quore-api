@@ -1,0 +1,15 @@
+name: Start deploy
+
+on:
+  push:
+    paths:
+      - "docker-compose.yml"
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+      - name: docker-compose
+        run: docker-compose up -d
