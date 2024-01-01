@@ -22,9 +22,9 @@ services:
     expose:
       - 5432
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${{ secrets.DB_USER }}
+      - POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
+      - POSTGRES_DB=${{ secrets.DB_NAME }}
 volumes:
   postgres_data:
 
