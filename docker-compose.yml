@@ -3,10 +3,14 @@ services:
   api:
     container_name: quore
     image: ghcr.io/novators-mobile/quore-api:main
+    restart: always
     expose:
-      - 80
+      - 8000
     depends_on:
-      - db
+      - postgres
+      - traefik
+    labels:
+      - "traefik.http.routers.api.rule=(PathPrefix(`/api`))"
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
@@ -25,6 +29,14 @@ services:
       - POSTGRES_USER=${{ secrets.DB_USER }}
       - POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
       - POSTGRES_DB=${{ secrets.DB_NAME }}
+  traefik:
+    image: traefik:latest
+    command: --api.insecure=true --providers.docker
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 volumes:
   postgres_data:
 

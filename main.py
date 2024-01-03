@@ -21,7 +21,7 @@ def get_db():
 async def favicon():
     return FileResponse("favicon.ico")
 
-@app.post("/api/login")
+@app.post("/login")
 async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not crud.get_user_by_email(db, auth.email):
         response.status_code = status.HTTP_401_UNAUTHORIZED
@@ -35,7 +35,7 @@ async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depe
     return {"access_token": jwt_handler.access_token(crud.get_id(db, auth.email)),
             "refresh_token": jwt_handler.refresh_token(crud.get_id(db, auth.email))}
 
-@app.post("/api/register", status_code=status.HTTP_201_CREATED)
+@app.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(response: Response, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not crud.get_verified(db, auth.email):
         return {"code": "success"}
@@ -60,6 +60,6 @@ async def register(response: Response, profile: schemas.ProfileCreate, auth: sch
 async def verify(response: Response, id: str, db: Session = Depends(get_db)):
     return {"test": "you're not allowed"}
 
-@app.post("/api/cards", status_code=status.HTTP_200_OK)
+@app.post("/cards", status_code=status.HTTP_200_OK)
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTBearer())):
     return crud.get_all_profiles(db)
