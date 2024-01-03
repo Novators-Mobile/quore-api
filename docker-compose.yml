@@ -11,7 +11,7 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`api.novatorsmobile.ru`)"
+      - "traefik.http.routers.frontend.rule=Path(`/api`)"
       - "traefik.http.routers.frontend.entrypoints=web"
   watchtower:
     image: containrrr/watchtower
