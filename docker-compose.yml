@@ -10,7 +10,9 @@ services:
       - postgres
       - traefik
     labels:
-      - "traefik.http.routers.api.rule=(PathPrefix(`/api`))"
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`api.novatorsmobile.ru`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
@@ -26,12 +28,15 @@ services:
     expose:
       - 5432
     environment:
-      - POSTGRES_USER=${{ secrets.DB_USER }}
-      - POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}
-      - POSTGRES_DB=${{ secrets.DB_NAME }}
+      - POSTGRES_USER=DB_USER
+      - POSTGRES_PASSWORD=DB_PASSWORD
+      - POSTGRES_DB=DB_NAME
   traefik:
     image: traefik:latest
-    command: --api.insecure=true --providers.docker
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
       - "8080:8080"

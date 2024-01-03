@@ -11,5 +11,7 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v3
-      - name: docker-compose
+      - name: stop previous version api
+        run: docker-compose down
+      - name: run api
         run: docker-compose up -d
