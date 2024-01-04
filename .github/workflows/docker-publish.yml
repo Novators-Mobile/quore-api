@@ -78,7 +78,9 @@ jobs:
             "JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}"
             "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}"
             "JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}"
-            "DB_SERVER=${{ secrets.DB_SERVER }}"
+            "DB_USER=${{ secrets.DB_USER }}"
+            "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+            "DB_NAME=${{ secrets.DB_NAME }}"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -20,6 +20,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config.json:/config.json
     command: --interval 30 quore
+    labels:
+      - "traefik.enable=false"
   postgres:
     image: postgres:latest
     container_name: postgres
@@ -31,6 +33,8 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+    labels:
+      - "traefik.enable=false"
   traefik:
     image: traefik:latest
     command:
