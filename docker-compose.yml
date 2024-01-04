@@ -5,14 +5,9 @@ services:
     image: ghcr.io/novators-mobile/quore-api:main
     restart: always
     expose:
-      - 8000
+      - 80
     depends_on:
       - postgres
-      - traefik
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.quore.rule=Host(`api.novatorsmobile.ru`)"
-      - "traefik.http.routers.quore.entrypoints=web"
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
@@ -20,8 +15,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config.json:/config.json
     command: --interval 30 quore
-    labels:
-      - "traefik.enable=false"
   postgres:
     image: postgres:latest
     container_name: postgres
@@ -33,19 +26,15 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
-    labels:
-      - "traefik.enable=false"
-  traefik:
-    image: traefik:latest
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-    ports:
-      - "80:80"
-      - "8080:8080"
+  nginx:
+    image: nginx:latest
+    container_name: nginx
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 80:80
+    depends_on:
+      - api
 volumes:
   postgres_data:
 

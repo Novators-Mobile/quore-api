@@ -8,7 +8,12 @@ import re, uvicorn, random, string
 
 base.metadata.create_all(engine)
 
-app = FastAPI()
+app = FastAPI(title="Quore API by Novatorsmobile",
+              description="Only for devs)",
+              version="0.9.9",
+              docs_url='/api/docs',
+              redoc_url='/api/redoc',
+              openapi_url='/api/openapi.json')
 
 def get_db():
     db = session()
