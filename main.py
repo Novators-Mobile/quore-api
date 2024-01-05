@@ -61,7 +61,7 @@ async def register(response: Response, profile: schemas.ProfileCreate, auth: sch
     print(generated_id)
     return {"code": "success"}
 
-@app.get("/verify/{id}", status_code=status.HTTP_200_OK)
+@app.get("/test/{id}", status_code=status.HTTP_200_OK)
 async def verify(response: Response, id: str, db: Session = Depends(get_db)):
     return {"test": "you're not allowed"}
 
