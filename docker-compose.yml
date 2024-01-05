@@ -2,7 +2,7 @@ version: '3'
 services:
   api:
     container_name: quore
-    image: quore-api
+    image: quore-api:local
     restart: always
     expose:
       - 80
