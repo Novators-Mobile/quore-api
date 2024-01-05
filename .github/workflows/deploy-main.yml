@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "docker-compose.yml"
+      - "deploy-main.yml"
 
 jobs:
   deploy:
