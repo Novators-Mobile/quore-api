@@ -2,7 +2,7 @@ version: '3'
 services:
   api:
     container_name: quore
-    image: ghcr.io/novators-mobile/quore-api:main
+    image: quore-api
     restart: always
     expose:
       - 80
