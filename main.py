@@ -13,7 +13,8 @@ app = FastAPI(title="Quore API by Novatorsmobile",
               version="0.9.9",
               docs_url='/api/docs',
               redoc_url='/api/redoc',
-              openapi_url='/api/openapi.json')
+              openapi_url='/api/openapi.json',
+              root_path="/api")
 
 def get_db():
     db = session()
@@ -60,10 +61,6 @@ async def register(response: Response, profile: schemas.ProfileCreate, auth: sch
     crud.create_auth(db, auth, res, generated_id)
     print(generated_id)
     return {"code": "success"}
-
-@app.get("/test/{id}", status_code=status.HTTP_200_OK)
-async def verify(response: Response, id: str, db: Session = Depends(get_db)):
-    return {"test": "you're not allowed"}
 
 @app.post("/cards", status_code=status.HTTP_200_OK)
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTBearer())):
