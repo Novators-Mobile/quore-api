@@ -2,10 +2,7 @@ name: Start deploy
 
 on:
   push:
-    paths:
-      - "docker-compose.yml"
-      - "deploy-main.yml"
-
+    branches: [ "main" ]
 jobs:
   deploy:
     runs-on: self-hosted
