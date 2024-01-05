@@ -11,6 +11,8 @@ base.metadata.create_all(engine)
 app = FastAPI(title="Quore API by Novatorsmobile",
               description="Only for devs)",
               version="0.9.9",
+              docs_url='/api/docs',
+              redoc_url='/api/redoc',
               root_path="/api")
 
 def get_db():
