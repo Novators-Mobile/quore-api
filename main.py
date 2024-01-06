@@ -10,11 +10,11 @@ base.metadata.create_all(engine)
 
 app = FastAPI(title="Quore API by Novatorsmobile",
               description="Only for devs)",
-              version="0.9.9")
-            #   root_path='/api',
-            #   docs_url='/api/docs',
-            #   redoc_url='/api/redoc',
-            #   openapi_url='/openapi.json')
+              version="0.9.9",
+              root_path='/api',
+              docs_url='/api/docs',
+              redoc_url='/api/redoc',
+              openapi_url='/openapi.json')
 
 def get_db():
     db = session()
