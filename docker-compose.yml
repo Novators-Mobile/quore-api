@@ -34,6 +34,7 @@ services:
       - /etc/ssl/certs/novatorsmobile_ru.key:/etc/ssl/certs/novatorsmobile_ru.key
     ports:
       - 80:80
+      - 443:443
     depends_on:
       - api
 volumes:
