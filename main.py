@@ -13,7 +13,8 @@ app = FastAPI(title="Quore API by Novatorsmobile",
               version="0.9.9",
               docs_url='/api/docs',
               redoc_url='/api/redoc',
-              openapi_url='/api/openapi.json')
+              openapi_url='/api/openapi.json',
+              root_path='/api')
 
 def get_db():
     db = session()
