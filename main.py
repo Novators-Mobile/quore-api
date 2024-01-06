@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, status, Depends
+from fastapi import FastAPI, Response, status, Depends, APIRouter
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.auth import hash, jwt_handler, jwt_bearer
@@ -14,7 +14,7 @@ app = FastAPI(title="Quore API by Novatorsmobile",
               docs_url='/api/docs',
               redoc_url='/api/redoc',
               openapi_url='/api/openapi.json')
-app.include_router(prefix='/api')
+app.include_router(APIRouter(prefix='/api'))
 
 def get_db():
     db = session()
