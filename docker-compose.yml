@@ -2,7 +2,7 @@ version: '3'
 services:
   api:
     container_name: quore
-    image: quore-api:local
+    image: ghcr.io/novators-mobile/quore-api:main
     expose:
       - 80
     depends_on:
@@ -30,6 +30,8 @@ services:
     container_name: nginx
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/ssl/certs/novatorsmobile_ru.full.crt:/etc/ssl/certs/novatorsmobile_ru.full.crt
+      - /etc/ssl/certs/novatorsmobile_ru.key:/etc/ssl/certs/novatorsmobile_ru.key
     ports:
       - 80:80
     depends_on:

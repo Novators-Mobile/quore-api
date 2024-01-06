@@ -1,0 +1,5 @@
+docker-compose.yml
+.github
+.gitignore
+nginx.conf
+config.json
