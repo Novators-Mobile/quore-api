@@ -37,8 +37,11 @@ def verify_auth(db: Session, id: str):
     db.commit()
     return {"code": "succes"}
 
-def get_verified(db: Session, email: str):
+def get_verified(db: Session, id: str):
+    return db.query(models.Auth).filter(models.Auth.id == id).first().verified
+
+def get_email_verified(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().verified
 
 def get_auth(db: Session, id: str):
-    return bool(db.query(models.Auth).filter(models.Auth.id == id))
+    return bool(db.query(models.Auth).filter(models.Auth.id == id).first())

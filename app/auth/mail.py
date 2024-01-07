@@ -9,7 +9,7 @@ configuration = ConnectionConfig(
     MAIL_SERVER=environ["MAIL_SERVER"],
     MAIL_FROM_NAME="Quore",
     MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=True,
+    MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True
 )

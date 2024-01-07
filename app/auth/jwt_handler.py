@@ -22,3 +22,10 @@ def access_decode(token: str) -> dict:
         return decoded_token if decoded_token["expire"] >= datetime.today().ctime() else None
     except:
         return {"error": "invalid token"}
+    
+def refresh_decode(token: str) -> dict:
+    try:
+        decoded_token = jwt.decode(token, REFRESH_SECRET, algorithms=[ALGORITHM])
+        return decoded_token if decoded_token["expire"] >= datetime.today().ctime() else None
+    except:
+        return {"error": "invalid token"}
