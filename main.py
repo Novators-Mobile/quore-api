@@ -11,7 +11,8 @@ base.metadata.create_all(engine)
 
 app = FastAPI(title="Quore API by Novatorsmobile",
               description="Only for devs)",
-              version="0.9.9")
+              version="0.9.9",
+              root_path='/api')
 mail = FastMail(mail.configuration)
 
 def get_db():
