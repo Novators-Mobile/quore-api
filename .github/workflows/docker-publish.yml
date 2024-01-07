@@ -81,6 +81,10 @@ jobs:
             "DB_USER=${{ secrets.DB_USER }}"
             "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
             "DB_NAME=${{ secrets.DB_NAME }}"
+            "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}"
+            "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}"
+            "MAIL_FROM=${{ secrets.MAIL_FROM }}"
+            "MAIL_SERVER"=${{ secrets.MAIL_SERVER }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
