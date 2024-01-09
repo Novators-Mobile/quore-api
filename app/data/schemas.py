@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import date
 
 class ProfileCreate(BaseModel):
     name: str
-    birth: datetime
+    birth: date
     sex: str
 
     class Config:
