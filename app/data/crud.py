@@ -44,4 +44,4 @@ def get_email_verified(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().verified
 
 def get_auth(db: Session, id: str):
-    return bool(db.query(models.Auth).filter(models.Auth.id == id).first())
+    return db.query(models.Auth).filter(models.Auth.id == id).first()

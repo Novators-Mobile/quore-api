@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Response, status, Depends, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
+import jinja2
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from app.auth import hash, jwt_handler, jwt_bearer, mail
@@ -14,6 +15,7 @@ app = FastAPI(title="Quore API by Novatorsmobile",
               version="0.9.9",
               root_path='/api')
 mail = FastMail(mail.configuration)
+jinja = jinja2.Environment()
 
 def get_db():
     db = session()
@@ -53,13 +55,16 @@ async def register(response: Response, background_tasks: BackgroundTasks, profil
         return {"error":"invalid password"}
     res = crud.create_profile(db, profile)
     generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
-    while not crud.get_auth(db, generated_id):
+    while crud.get_auth(db, generated_id) != None:
+        print(crud.get_auth(db, generated_id))
         generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     crud.create_auth(db, auth, res, generated_id)
+    with open('confirm.html', 'r') as file:
+        template = jinja.from_string(file.read().rstrip())
     message = MessageSchema(
         subject="Подтверди свою почту",
         recipients=[auth.email],
-        body="""<p>Quore DEV TEST</p><p><a href="https://novatorsmobile.ru/api/verify/{0}">Подтверждение почты</a></p> """.format(generated_id),
+        body=template.render(id=generated_id),
         subtype=MessageType.html)
     background_tasks.add_task(mail.send_message, message)
     return {"code": "success"}
