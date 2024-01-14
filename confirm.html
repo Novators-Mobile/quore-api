@@ -1,204 +1,325 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  lang="ru"
+>
   <head>
-    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter&family=Roboto&family=Source+Serif+4:ital,opsz@1,8..60&family=Ubuntu&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&display=swap"
       rel="stylesheet"
     />
-    <style>
-      html {
-        box-sizing: border-box;
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300&display=swap"
+      rel="stylesheet"
+    />
+    <title>QuoreMail</title>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300&display=swap');
+
+      table {
+        border-spacing: 0;
+        mso-cellspacing: 0;
+        mso-padding-alt: 0;
       }
 
-      *,
-      *::before,
-      *::after {
-        box-sizing: inherit;
+      td {
+        padding: 0;
       }
 
-      body {
-        background-color: #232323;
-        margin: 0 auto;
-        color: white;
-        font-family: Ubuntu;
-        font-size: 24px;
-        font-weight: 300;
+      #outlook a {
+        padding: 0;
       }
 
-      header {
-        width: 100%;
+      a {
+        text-decoration: none;
+        color: #e8fbfa;
+        font-size: 6px;
       }
 
-      .header__inner {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-top: 20px;
+      @media screen and (max-width: 599.98px) {
       }
 
-      .img__container {
-        background-color: white;
-        border-radius: 53px;
-      }
-
-      .container {
-        margin-top: 40px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 60px;
-      }
-
-      .text__container {
-        display: grid;
-        gap: 40px;
-      }
-
-      p {
-        text-align: center;
-        margin: 0;
-      }
-
-      .description {
-        width: 600px;
-      }
-
-      .hello,
-      .welcome {
-        font-weight: 700;
-      }
-
-      .btn {
-        border: none;
-        background-color: white;
-        padding: 10px 90px;
-        border-radius: 24px;
-        font-family: Ubuntu;
-        font-size: 20px;
-        cursor: pointer;
-      }
-
-      footer {
-        margin-top: 100px;
-        margin-bottom: 100px;
-        width: 100%;
-      }
-
-      .footer__inner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 20px;
-      }
-
-      @media (max-width: 1000px) {
-        body {
-          font-size: 16px;
+      @media screen and (max-width: 399.98px) {
+        .mobile-padding {
+          padding-right: 10px !important;
+          padding-left: 10px !important;
         }
 
-        .description {
-          width: 400px;
+        .mobile-col-padding {
+          padding-right: 0 !important;
+          padding-left: 0 !important;
         }
 
-        .btn {
-          font-size: 16px;
+        .two-columns .column {
+          width: 100% !important;
+          max-width: 100% !important;
         }
 
-        .img__container img {
-          width: 300px;
+        .two-columns .column img {
+          width: 100% !important;
+          max-width: 100% !important;
         }
 
-        .img__container {
-          border-radius: 40px;
+        .three-columns .column {
+          width: 100% !important;
+          max-width: 100% !important;
         }
 
-        footer {
-          margin-top: 50px;
-          margin-bottom: 50px;
-        }
-
-        .quore-img {
-          width: 250px;
-          height: 70px;
+        .three-columns .column img {
+          width: 100% !important;
+          max-width: 100% !important;
         }
       }
 
-      @media (max-width: 480px) {
-        .top__img img {
-          width: 200px;
-          height: 150px;
+      /* Custom Dark Mode Colors */
+      :root {
+        color-scheme: light dark;
+        supported-color-schemes: light dark;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        table,
+        td {
+          background-color: #232323 !important;
         }
 
-        .img__container {
-          background: none;
-        }
-
-        .description {
-          width: 290px;
-        }
-
-        .header__inner {
-          margin-top: 100px;
-        }
-
-        .quore-img {
-          display: none;
-        }
-
-        .container {
-          gap: 170px;
-        }
-
-        .footer {
-          margin-top: 20px;
+        h1,
+        h2,
+        h3,
+        p {
+          color: #ffffff !important;
         }
       }
     </style>
+
+    <!--[if (gte mso 9)|(IE)]>
+      <style type="text/css">
+        table {
+          border-collapse: collapse !important;
+        }
+      </style>
+    <![endif]-->
+
+    <!--[if (gte mso 9)|(IE)]>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG />
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+    <![endif]-->
   </head>
-  <body>
-    <header class="header">
-      <div class="header__inner">
-        <div class="img__container">
-          <picture class="top__img">
-            <source
-              class="top-img__inner"
-              srcset="images/small-section.png"
-              media="(max-width: 480px)"
-            />
-            <img src="https://novatorsmobile.ru/api/images/section.png" alt="agfagqg" />
-          </picture>
+
+  <body
+    style="margin: 0; padding: 0; min-width: 100%; background-color: #232323"
+  >
+    <!--[if (gte mso 9)|(IE)]>
+      <style type="text/css">
+        body {
+          background-color: #dde0e1 !important;
+        }
+        body,
+        table,
+        td,
+        p,
+        a {
+          font-family: sans-serif, Arial, Helvetica !important;
+        }
+      </style>
+    <![endif]-->
+
+    <center
+      style="
+        width: 100%;
+        table-layout: fixed;
+        background-color: #232323;
+        padding-top: 40px;
+        padding-bottom: 40px;
+      "
+    >
+      <div style="max-width: 1000px; background-color: #232323">
+        <!-- Preheader (remove comment) -->
+        <div
+          style="
+            font-size: 0px;
+            color: #fafdfe;
+            line-height: 1px;
+            mso-line-height-rule: exactly;
+            display: none;
+            max-width: 0px;
+            max-height: 0px;
+            opacity: 0;
+            overflow: hidden;
+            mso-hide: all;
+          "
+        >
+          Стартовое описание
         </div>
+        <!-- End Preheader (remove comment) -->
+
+        <!--[if (gte mso 9)|(IE)]>
+        <table width="600" align="center" border="0" cellspacing="0" cellpadding="0" role="presentation"
+          style="color:#1C1E23;">
+        <tr>
+        <td>
+      <![endif]-->
+
+        <table
+          align="center"
+          border="0"
+          cellspacing="0"
+          cellpadding="0"
+          role="presentation"
+          style="
+            color: #1c1e23;
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #232323;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+          "
+        >
+          <!-- Logo -->
+          <tr>
+            <td>
+              <table
+                align="center"
+                border="0"
+                cellspacing="0"
+                cellpadding="0"
+                role="presentation"
+              >
+                <tr>
+                  <td
+                    style="
+                      text-align: center;
+                      background-color: #d9d9d9;
+                      border-radius: 53px;
+                    "
+                  >
+                    <img src="https://novatorsmobile.ru/api/logo.png" border="0" width="538" height="284" />
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- End Logo -->
+
+          <!-- Hero -->
+          <tr>
+            <td style="padding: 0px 24px 25px 24px">
+              <table
+                align="center"
+                border="0"
+                cellspacing="0"
+                cellpadding="0"
+                role="presentation"
+                style="width: 100%; max-width: 730px"
+              >
+                <tr>
+                  <td style="padding: 19px 0 10px 0; text-align: center">
+                    <p
+                      style="
+                        margin: 0;
+                        font-weight: 700;
+                        font-size: 30px;
+                        line-height: 25px;
+                        color: #fff;
+                      "
+                    >
+                      Привет!
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 0 0 25px 0; text-align: center">
+                    <p
+                      style="
+                        margin: 0;
+                        font-weight: 700;
+                        font-size: 30px;
+                        line-height: 25px;
+                        color: #fff;
+                      "
+                    >
+                      Добро пожаловать в Quore.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    style="
+                      padding: 0 0 25px 0;
+                      text-align: center;
+                      width: 1000px;
+                    "
+                  >
+                    <p
+                      style="
+                        margin: 0;
+                        font-weight: 300;
+                        font-size: 30px;
+                        color: #fff;
+                      "
+                    >
+                      Ты почти у цели, осталось подтвердить почту, чтобы
+                      оставаться в безопасности. Кликни на кнопку внизу и
+                      приступай к поиску новых знакомств!
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 69px 0 0 0; text-align: center">
+                    <a
+                      href="https://novatorsmobile.ru/api/verify/{{ id }}"
+                      target="_blank"
+                      style="
+                        background-color: #ffffff;
+                        font-weight: 700;
+                        font-size: 16px;
+                        color: #232325;
+                        text-align: center;
+                        text-decoration: none;
+                        padding: 10px 120px 10px 120px;
+                        display: inline-block;
+                        border-radius: 24px;
+                      "
+                    >
+                      &nbsp;&nbsp;&nbsp;Подтвердить почту&nbsp;&nbsp;&nbsp;
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 100px 0 0 0; text-align: center">
+                    <img src="https://novatorsmobile.ru/api/QUORE.png" border="0" width="330" height="134" />
+                  </td>
+                </tr>
+                <tr>
+                  <td style=" text-align: center">
+                    <img src="https://novatorsmobile.ru/api/authors.png" border="0" width="181" height="40" />
+                  </td>
+                </tr>
+        </table>
+
+        <!--[if (gte mso 9)|(IE)]>
+        </td>
+        </tr>
+        </table>
+      <![endif]-->
       </div>
-    </header>
-    <main class="container">
-      <div class="text__container">
-        <div class="title__container">
-          <p class="hello">Привет!</p>
-          <p class="welcome">Добро пожаловать в Quore.</p>
-        </div>
-        <div class="descr__container">
-          <p class="description">
-            Ты почти у цели, осталось подтвердить почту, чтобы оставаться в
-            безопасности. Кликни на кнопку внизу и приступай к поиску новых
-            знакомств!
-          </p>
-        </div>
-      </div>
-      <a href="https://novatorsmobile.ru/api/verify/{{ id }}">
-        <button class="btn" type="submit">Подтвердить почту</button>
-      </a>
-    </main>
-    <footer class="footer">
-      <div class="footer__inner">
-        <img src="https://novatorsmobile.ru/api/images/QUORE.png" class="quore-img" alt="agfagqg" />
-        <img src="https://novatorsmobile.ru/api/images/logo-nov.png" class="logo" alt="agfagqg" />
-      </div>
-    </footer>
+    </center>
   </body>
 </html>
