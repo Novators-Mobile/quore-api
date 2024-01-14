@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Response, status, Depends, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
-import jinja2
+import jinja2, datetime
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from app.auth import hash, jwt_handler, jwt_bearer, mail
@@ -28,6 +28,18 @@ def get_db():
 async def favicon():
     return FileResponse("favicon.ico")
 
+@app.get("/authors.png", include_in_schema=False)
+async def favicon():
+    return FileResponse("authors.png")
+
+@app.get("/logo.png", include_in_schema=False)
+async def favicon():
+    return FileResponse("logo.png")
+
+@app.get("/QUORE.png", include_in_schema=False)
+async def favicon():
+    return FileResponse("QUORE.png")
+
 @app.post("/login")
 async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not crud.get_user_by_email(db, auth.email):
@@ -46,13 +58,16 @@ async def login(response: Response, auth: schemas.AuthCreate, db: Session = Depe
 async def register(response: Response, background_tasks: BackgroundTasks, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not re.match(r"\S+@\S+\.\S+" , auth.email):
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"error":"invalid email"}
+        return {"error": "invalid email"}
     if crud.get_user_by_email(db, auth.email):
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"error": "user exists"}
     if sum(symbol.isdigit() for symbol in auth.password) == 0 or len(auth.password) < 8 or sum(symbol.isalpha() for symbol in auth.password) == 0:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"error":"invalid password"}
+        return {"error": "invalid password"}
+    if datetime.date.today().year - profile.birth.year - ((datetime.date.today().month, datetime.date.today().day) < (profile.birth.month, profile.birth.day)) < 18:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"error": "adults only"}
     res = crud.create_profile(db, profile)
     generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     while crud.get_auth(db, generated_id) != None:
@@ -89,4 +104,4 @@ async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
 
 @app.get("/cards")
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
-    return crud.get_all_profiles(db)
+    return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'])

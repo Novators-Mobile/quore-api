@@ -7,9 +7,8 @@ class Profile(database.base):
 
     id = Column(Integer(), primary_key=True, unique=True, autoincrement=True)
     name = Column(String(50), nullable=False)
-    birth = Column(Date(), nullable=False)
+    birth = Column(Date(), CheckConstraint("birth < (current_date - interval '18' year )"), nullable=False)
     sex = Column(String(), nullable=False)
-
     auth = relationship("Auth")
 
 class Auth(database.base):
@@ -19,4 +18,5 @@ class Auth(database.base):
     verified = Column(Boolean(), default=False, nullable=False)
     email = Column(String(), CheckConstraint("email LIKE '%@%.%'"), nullable=False, unique=True)
     hashed = Column(String(), nullable=False)   
-    profile = relationship("Profile")
+    user_id = Column(Integer(), ForeignKey("profiles.id"))
+    user = relationship("Profile")

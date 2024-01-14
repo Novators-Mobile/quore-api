@@ -27,9 +27,9 @@ def create_auth(db: Session, auth: schemas.AuthCreate, profile: schemas, id: str
     db.refresh(db_auth)
     return db_auth
 
-def get_all_profiles(db: Session) -> List[models.Profile]:
-    result = db.query(models.Profile).all()
-    return sample(result, len(result))
+def get_all_profiles(db: Session, id: int) -> List[models.Profile]:
+    result = db.query(models.Profile).filter(models.Profile.id != id).all()
+    return result
 
 def verify_auth(db: Session, id: str):
     db_auth = db.query(models.Auth).get(id)
