@@ -7,13 +7,18 @@ services:
       - 80
     depends_on:
       - postgres
+  expo:
+    container_name: expo
+    image: ghcr.io/novators-mobile/quore:master
+    ports:
+      - 8081:8081
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config.json:/config.json
-    command: --interval 30 quore
+    command: --interval 30 quore expo
   postgres:
     image: postgres:latest
     container_name: postgres
