@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List
 from random import sample
+from datetime import datetime
 from app.data import models, schemas
 from app.auth.hash import hash
 
@@ -21,11 +22,25 @@ def create_profile(db: Session, profile: schemas.ProfileCreate) -> models.Profil
     return db_profile
 
 def create_auth(db: Session, auth: schemas.AuthCreate, profile: schemas, id: str) -> models.Auth:
-    db_auth = models.Auth(email=auth.email, hashed=hash(auth.password), user_id=profile.id, id=id)
+    db_auth = models.Auth(email=auth.email, hashed=hash(auth.password), user_id=profile.id, id=id, sent=datetime.today())
     db.add(db_auth)
     db.commit()
     db.refresh(db_auth)
     return db_auth
+
+def change_auth_id(db: Session, email: str, id: str):
+    old_id = db.query(models.Auth).filter(models.Auth.email == email).first().id
+    db_auth = db.query(models.Auth).get(old_id)
+    db_auth.id = id
+    db.commit()
+    return {"code": "success"}
+
+def change_auth_sent(db: Session, email: str, sent: datetime):
+    old_id = db.query(models.Auth).filter(models.Auth.email == email).first().id
+    db_auth = db.query(models.Auth).get(old_id)
+    db_auth.sent = sent
+    db.commit()
+    return {"code": "success"}
 
 def get_all_profiles(db: Session, id: int) -> List[models.Profile]:
     result = db.query(models.Profile).filter(models.Profile.id != id).all()
@@ -35,7 +50,7 @@ def verify_auth(db: Session, id: str):
     db_auth = db.query(models.Auth).get(id)
     db_auth.verified = True
     db.commit()
-    return {"code": "succes"}
+    return {"code": "success"}
 
 def get_verified(db: Session, id: str):
     return db.query(models.Auth).filter(models.Auth.id == id).first().verified
@@ -45,3 +60,6 @@ def get_email_verified(db: Session, email: str):
 
 def get_auth(db: Session, id: str):
     return db.query(models.Auth).filter(models.Auth.id == id).first()
+
+def get_email_sent(db: Session, email: str):
+    return db.query(models.Auth).filter(models.Auth.email == email).first().sent

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 ACCESS_SECRET = environ["JWT_ACCESS_SECRET"]
 REFRESH_SECRET = environ["JWT_REFRESH_SECRET"]
-ALGORITHM = environ["JWT_ALGORITHM"]
+ALGORITHM = "HS256"
 ACCESS_EXPIRE = timedelta(minutes=30)
 REFRESH_EXPIRE = timedelta(days=7)
 
