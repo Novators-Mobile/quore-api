@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, status, Depends, BackgroundTasks
+from fastapi import FastAPI, Response, status, Depends, BackgroundTasks, Query
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 import jinja2, datetime
 from sqlalchemy.orm import Session
@@ -20,6 +20,10 @@ tags_metadata = [
     {
         "name": "Запросы для пользователей",
         "description": "Запросы для пользователя. Передаются через письма или ответы от сервера"
+    },
+    {
+        "name": "Управление профилем",
+        "description": "Управление своим профилем или получение информации о другом. Требуется авторизация по JWT-токену через заголовок Authorization: Bearer TOKEN"
     }
 ]
 
@@ -75,6 +79,9 @@ async def favicon():
     }}
 })
 async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
+    """
+    Авторизация пользователя по почте и паролю. Возвращает JWT-токены для дальнейших запросов
+    """
     if not crud.get_user_by_email(db, auth.email):
         return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
     if not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
@@ -112,6 +119,14 @@ async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     }}
 })
 async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
+    """
+    Регистрация пользователя. После регистрации на указанную почту отправляется письмо с ссылкой на подтверждение (см. /verify) 
+    Для успешной регистрации поля должны соответствовать следующим требованиям:
+    1. Почта должна соответствовать обычному формату
+    2. Почта не должна быть уже зарегистрирована на другого пользователя
+    3. Пароль должен содержать хотя бы одну цифру, одну английскую букву, и быть длиной не менее 8 символов
+    4. Возраст пользователя должен быть не меньше 18 лет
+    """
     if not re.match(r"\S+@\S+\.\S+" , auth.email):
         return JSONResponse({"error": "invalid email"}, status.HTTP_400_BAD_REQUEST)
     if crud.get_user_by_email(db, auth.email):
@@ -138,6 +153,10 @@ async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCr
 
 @app.get("/verify/{id}", tags=["Запросы для пользователей"], response_class=HTMLResponse)
 async def verify(id: str, response: Response, db: Session = Depends(get_db)):
+    """
+    Запрос посылается от пользователя при переходе по ссылке из письма (см. /register)
+    Возвращает HTML с текстом о статусе подтверждения
+    """
     if crud.get_auth(db, id):
         if not crud.get_verified(db, id):
             crud.verify_auth(db, id)
@@ -171,6 +190,9 @@ async def verify(id: str, response: Response, db: Session = Depends(get_db)):
     }}
 })
 async def resend(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Запрос повторной отправки письма на почту. Можно вызвать только раз в 45 секунд.
+    """
     if not crud.get_user_by_email(db, email):
         return JSONResponse({"error": "invalid user"}, status.HTTP_404_NOT_FOUND)
     if crud.get_email_verified(db, email):
@@ -195,9 +217,48 @@ async def resend(email: str, background_tasks: BackgroundTasks, db: Session = De
 
 @app.get("/refresh", tags=["Авторизация"])
 async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
-    id = jwt_handler.refresh_decode(token)['id']
+    """
+    Обновление access token. Требуется авторизация по refresh token через заголовок Authorization: Bearer TOKEN
+    НЕ РАБОТАЕТ!!!
+    """
+    try:
+        id = jwt_handler.refresh_decode(token)['id']
+    except:
+        return {"error": "invalid token"}
     return {"access_token": jwt_handler.access_token(id)}
 
 @app.get("/cards", tags=["Рекомандации"])
 async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Выдача рекомендации карточек. На данный момент отображаются все пользователи за исключением авторизованного.
+    """
     return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'])
+
+@app.get("/profile", tags=["Управление профилем"])
+async def profile_get(id: int = Query(None, description="ID профиля. При отсутствии параметра возвращается информация об авторизованном пользователе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Полная информация о профиле
+    """
+    if id == None:
+        try:
+            id = jwt_handler.refresh_decode(token)['id']
+        except:
+            return {"error": "invalid token"}
+    return crud.get_profile(db, id)
+
+@app.patch("/profile", tags=["Управление профилем"])
+async def profile_edit(name: str = Query(None, description="Имя пользователя"), status: str = Query(None, description="Отображаемый статус"), about: str = Query(None, description="О себе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Изменение информации профиля авторизованного пользователя
+    """
+    try:
+        id = jwt_handler.refresh_decode(token)['id']
+    except:
+        return {"error": "invalid token"}
+    if name != None:
+        crud.change_name(db, id, name)
+    if status != None:
+        crud.change_status(db, id, status)
+    if about != None:
+        crud.change_about(db, id, about)
+    return {"result": "success"}

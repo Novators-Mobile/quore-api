@@ -15,6 +15,9 @@ def get_hashed(db: Session, email: str):
 def get_id(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().user_id
 
+def get_profile(db: Session, id: str):
+    return db.query(models.Profile).get(id)
+
 def create_profile(db: Session, profile: schemas.ProfileCreate) -> models.Profile:
     db_profile = models.Profile(name=profile.name, birth=profile.birth, sex=profile.sex)
     db.add(db_profile)
@@ -34,15 +37,28 @@ def change_auth_id(db: Session, email: str, id: str):
     db_auth = db.query(models.Auth).get(old_id)
     db_auth.id = id
     db.commit()
-    return {"code": "success"}
 
 def change_auth_sent(db: Session, email: str, sent: datetime):
     old_id = db.query(models.Auth).filter(models.Auth.email == email).first().id
     db_auth = db.query(models.Auth).get(old_id)
     db_auth.sent = sent
     db.commit()
-    return {"code": "success"}
 
+def change_name(db: Session, id: int, name: str):
+    profile = db.query(models.Profile).get(id)
+    profile.name = name
+    db.commit()
+
+def change_about(db: Session, id: int, about: str):
+    profile = db.query(models.Profile).get(id)
+    profile.about = about
+    db.commit()
+
+def change_status(db: Session, id: int, status: str):
+    profile = db.query(models.Profile).get(id)
+    profile.status = status
+    db.commit()
+    
 def get_all_profiles(db: Session, id: int) -> List[models.Profile]:
     result = db.query(models.Profile).filter(models.Profile.id != id).options(load_only(models.Profile.name, models.Profile.status, models.Profile.age)).all()
     return result
@@ -51,7 +67,6 @@ def verify_auth(db: Session, id: str):
     db_auth = db.query(models.Auth).get(id)
     db_auth.verified = True
     db.commit()
-    return {"code": "success"}
 
 def get_verified(db: Session, id: str):
     return db.query(models.Auth).filter(models.Auth.id == id).first().verified
