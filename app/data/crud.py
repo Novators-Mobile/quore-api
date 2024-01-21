@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
+from sqlalchemy import extract, func
 from typing import List
 from random import sample
 from datetime import datetime
@@ -43,7 +44,7 @@ def change_auth_sent(db: Session, email: str, sent: datetime):
     return {"code": "success"}
 
 def get_all_profiles(db: Session, id: int) -> List[models.Profile]:
-    result = db.query(models.Profile).filter(models.Profile.id != id).all()
+    result = db.query(models.Profile).filter(models.Profile.id != id).options(load_only(models.Profile.name, models.Profile.status, models.Profile.age)).all()
     return result
 
 def verify_auth(db: Session, id: str):

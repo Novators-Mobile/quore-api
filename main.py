@@ -111,7 +111,7 @@ async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
         }
     }}
 })
-async def register(response: Response, background_tasks: BackgroundTasks, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
+async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCreate, auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     if not re.match(r"\S+@\S+\.\S+" , auth.email):
         return JSONResponse({"error": "invalid email"}, status.HTTP_400_BAD_REQUEST)
     if crud.get_user_by_email(db, auth.email):
