@@ -25,3 +25,18 @@ class Auth(database.base):
     sent = Column(DateTime(), nullable=False, default=datetime.datetime.now)
     user_id = Column(Integer(), ForeignKey("profiles.id"))
     user = relationship("Profile")
+
+class Like(database.base):
+    __tablename__ = 'likes'
+
+    id = Column(Integer(), primary_key=True, unique=True, autoincrement=True)
+    initiator = Column(Integer(), ForeignKey('profiles.id'))
+    target = Column(Integer(), ForeignKey('profiles.id'))
+    match = Column(Boolean(), default=False)
+
+class Dislike(database.base):
+    __tablename__ = "dislikes"
+
+    id = Column(Integer(), primary_key=True, unique=True, autoincrement=True)
+    initiator = Column(Integer(), ForeignKey('profiles.id'))
+    target = Column(Integer(), ForeignKey('profiles.id'))

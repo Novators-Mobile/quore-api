@@ -168,7 +168,7 @@ async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCr
         }
     }}
 })
-async def verify(id: str, response: Response, db: Session = Depends(get_db)):
+async def verify(id: str, db: Session = Depends(get_db)):
     """
     Запрос посылается от пользователя при переходе по ссылке из письма (см. /register)
     Возвращает HTML с текстом о статусе подтверждения
@@ -180,7 +180,6 @@ async def verify(id: str, response: Response, db: Session = Depends(get_db)):
         else:
             return HTMLResponse("""Почта уже была подтверждена""", status.HTTP_410_GONE)
     else:
-        response.status_code = status.HTTP_404_NOT_FOUND
         return HTMLResponse("""Неправильная ссылка или почта не найдена""", status.HTTP_400_BAD_REQUEST)
      
 @app.get("/resend/{email}", tags=["Авторизация"], responses={
@@ -275,6 +274,58 @@ async def cards(agefrom: int = Query(None, description="Старше"), ageto: i
         return crud.get_all_profiles_by_sex(db, jwt_handler.access_decode(token)['id'], agefrom, ageto, sex)
     else:
         return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'], agefrom, ageto)
+    
+@app.get("/like", tags=["Рекомандации"], responses={
+    200: {"description": "Лайк создан", "content": {
+        "application/json": {
+            "example": {"result": "liked"}
+        }
+    }},
+    201: {"description": "Лайк оказался совместным - мэтч", "content": {
+        "application/json": {
+            "example": {"result": "match"}
+        }
+    }},
+    404: {"description": "Пользователь не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }}
+})
+async def like(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Механизм лайков. При наличии лайка от другого пользователя сообщает о мэтче
+    """
+    if not crud.get_profile(db, id):
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    initiator = jwt_handler.refresh_decode(token)['id']
+    if crud.get_like(db, id, initiator):
+        crud.match(db, id, initiator)
+        return JSONResponse({"result": "match"}, status.HTTP_200_OK)
+    else:
+        crud.like(db, initiator, id)
+        return JSONResponse({"result": "liked"}, status.HTTP_201_CREATED)
+    
+@app.get("/dislike", tags=["Рекомандации"], responses={
+    200: {"description": "Дизлайк создан", "content": {
+        "application/json": {
+            "example": {"result": "liked"}
+        }
+    }},
+    404: {"description": "Пользователь не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }}
+})
+async def dislike(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Дизлайки
+    """
+    if not crud.get_profile(db, id):
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    crud.dislike(db, jwt_handler.refresh_decode(token)['id'], id)
+    return JSONResponse({"result": "success"}, status.HTTP_200_OK)
 
 @app.get("/profile", tags=["Управление профилем"], responses={
     200: {"description": "Информация о профиле", "content": {

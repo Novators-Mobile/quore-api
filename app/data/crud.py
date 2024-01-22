@@ -58,6 +58,28 @@ def change_status(db: Session, id: int, status: str):
     profile = db.query(models.Profile).get(id)
     profile.status = status
     db.commit()
+
+def like(db: Session, initiator: id, target: id):
+    db_like = models.Like(initiator=initiator, target=target)
+    db.add(db_like)
+    db.commit()
+    db.refresh(db_like)
+    return db_like
+
+def match(db: Session, initiator: id, target: id):
+    db_like = db.query(models.Like).filter(models.Like.initiator == initiator, models.Like.target == target).first()
+    db_like.match = True
+    db.commit()
+
+def get_like(db: Session, initiator: id, target: id):
+    return db.query(models.Like).filter(models.Like.initiator == initiator, models.Like.target == target).first()
+
+def dislike(db: Session, initiator: id, target: id):
+    db_dislike = models.Dislike(initiator=initiator, target=target)
+    db.add(db_dislike)
+    db.commit()
+    db.refresh(db_dislike)
+    return db_dislike
     
 def get_all_profiles(db: Session, id: int, agefrom: int, ageto: int) -> List[models.Profile]:
     result = db.query(models.Profile).filter(models.Profile.id != id, models.Profile.age >= agefrom, models.Profile.age <= ageto).options(load_only(models.Profile.name, models.Profile.status, models.Profile.age)).all()
