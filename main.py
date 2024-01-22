@@ -61,7 +61,7 @@ async def favicon():
     return FileResponse("QUORE.png")
 
 @app.post("/login", tags=["Авторизация"], responses={
-    401: {"description": "Пользователь не существует или неправильный пароль", "content": {
+    404: {"description": "Пользователь не существует или неправильный пароль", "content": {
         "application/json": {
             "example": {"error":"invalid user"}
         }
@@ -83,9 +83,9 @@ async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     Авторизация пользователя по почте и паролю. Возвращает JWT-токены для дальнейших запросов
     """
     if not crud.get_user_by_email(db, auth.email):
-        return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse({"error":"invalid user"}, status.HTTP_404_NOT_FOUND)
     if not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
-        return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse({"error":"invalid user"}, status.HTTP_404_NOT_FOUND)
     if not crud.get_email_verified(db, auth.email):
         return JSONResponse({"error":"not verified"}, status.HTTP_401_UNAUTHORIZED)
     return {"access_token": jwt_handler.access_token(crud.get_id(db, auth.email)),
@@ -151,7 +151,23 @@ async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCr
     background_tasks.add_task(mail.send_message, message)
     return {"result": "success"}
 
-@app.get("/verify/{id}", tags=["Запросы для пользователей"], response_class=HTMLResponse)
+@app.get("/verify/{id}", tags=["Запросы для пользователей"], response_class=HTMLResponse, responses={
+    410: {"description": "Электронная почта подтверждена ранее", "content": {
+        "text/html": {
+            "example": "Почта уже была подтверждена"
+        }
+    }},
+    400: {"description": "Пользователь не регистрировался или в ссылке ошибка", "content": {
+        "text/html": {
+            "example": "Неправильная ссылка или почта не найдена"
+        }
+    }},
+    200: {"description": "Электронная почта подтверждена", "content": {
+        "text/html": {
+            "example": "Электронная почта подтверждена"
+        }
+    }}
+})
 async def verify(id: str, response: Response, db: Session = Depends(get_db)):
     """
     Запрос посылается от пользователя при переходе по ссылке из письма (см. /register)
@@ -162,7 +178,7 @@ async def verify(id: str, response: Response, db: Session = Depends(get_db)):
             crud.verify_auth(db, id)
             return HTMLResponse("""Электронная почта подтверждена""", status.HTTP_200_OK)
         else:
-            return HTMLResponse("""Почта уже была подтверждена""", status.HTTP_400_BAD_REQUEST)
+            return HTMLResponse("""Почта уже была подтверждена""", status.HTTP_410_GONE)
     else:
         response.status_code = status.HTTP_404_NOT_FOUND
         return HTMLResponse("""Неправильная ссылка или почта не найдена""", status.HTTP_400_BAD_REQUEST)
@@ -227,34 +243,80 @@ async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
         return {"error": "invalid token"}
     return {"access_token": jwt_handler.access_token(id)}
 
-@app.get("/cards", tags=["Рекомандации"])
-async def cards(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+@app.get("/cards", tags=["Рекомандации"], responses={
+    200: {"description": "Карточки пользователей", "content": {
+        "application/json": {
+            "example": [
+                {
+                    "id": 0,
+                    "name": "Ivan Ivanov",
+                    "age": 18,
+                    "status": "Love cats and FastAPI"
+                },
+                {
+                    "id": 1,
+                    "name": "Peter Petrov",
+                    "age": 20,
+                    "status": "Never gonna give you up"
+                }
+            ]
+        }
+    }}
+})
+async def cards(agefrom: int = Query(None, description="Старше"), ageto: int = Query(None, description="Младше"), sex: str = Query(None, description="Пол"),  db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Выдача рекомендации карточек. На данный момент отображаются все пользователи за исключением авторизованного.
     """
-    return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'])
+    if not agefrom:
+        agefrom = 0
+    if not ageto:
+        ageto = 2000
+    if sex:
+        return crud.get_all_profiles_by_sex(db, jwt_handler.access_decode(token)['id'], agefrom, ageto, sex)
+    else:
+        return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'], agefrom, ageto)
 
-@app.get("/profile", tags=["Управление профилем"])
+@app.get("/profile", tags=["Управление профилем"], responses={
+    200: {"description": "Информация о профиле", "content": {
+        "application/json": {
+            "example": {
+                "id": 0,
+                "name": "Ivan Ivanov",
+                "about": "Somebody once told me the world is gonna roll me. I ain't the sharpest tool in the shed.",
+                "age": 18,
+                "status": "Love cats and FastAPI"
+            }
+        }
+    }},
+    404: {"description": "Профиль не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }}
+})
 async def profile_get(id: int = Query(None, description="ID профиля. При отсутствии параметра возвращается информация об авторизованном пользователе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Полная информация о профиле
     """
     if id == None:
-        try:
-            id = jwt_handler.refresh_decode(token)['id']
-        except:
-            return {"error": "invalid token"}
-    return crud.get_profile(db, id)
+        id = jwt_handler.refresh_decode(token)['id']
+    result = crud.get_profile(db, id)
+    if not result:
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    return result
 
-@app.patch("/profile", tags=["Управление профилем"])
+@app.patch("/profile", tags=["Управление профилем"], responses={
+    200: {"description": "Информация обновлена", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }}
+})
 async def profile_edit(name: str = Query(None, description="Имя пользователя"), status: str = Query(None, description="Отображаемый статус"), about: str = Query(None, description="О себе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Изменение информации профиля авторизованного пользователя
     """
-    try:
-        id = jwt_handler.refresh_decode(token)['id']
-    except:
-        return {"error": "invalid token"}
+    id = jwt_handler.refresh_decode(token)['id']
     if name != None:
         crud.change_name(db, id, name)
     if status != None:
