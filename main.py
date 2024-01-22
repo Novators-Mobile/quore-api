@@ -29,9 +29,14 @@ tags_metadata = [
 
 base.metadata.create_all(engine)
 
-app = FastAPI(title="Quore API by Novatorsmobile",
+app = FastAPI(title="Quore API",
               description="Only for devs)",
               version="0.9.9",
+              contact={
+                  "name": "Novators Mobile",
+                  "url": "https://github.com/Novators-Mobile",
+                  "email": "admin@novatorsmobile.ru"
+              }
               openapi_tags=tags_metadata,
               root_path='/api')
 mail = FastMail(mail.configuration)
