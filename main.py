@@ -36,7 +36,7 @@ app = FastAPI(title="Quore API",
                   "name": "Novators Mobile",
                   "url": "https://github.com/Novators-Mobile",
                   "email": "admin@novatorsmobile.ru"
-              }
+              },
               openapi_tags=tags_metadata,
               root_path='/api')
 mail = FastMail(mail.configuration)
