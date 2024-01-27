@@ -66,14 +66,9 @@ async def favicon():
     return FileResponse("QUORE.png")
 
 @app.post("/login", tags=["Авторизация"], responses={
-    404: {"description": "Пользователь не существует или неправильный пароль", "content": {
+    401: {"description": "Неудачная попытка входа", "content": {
         "application/json": {
             "example": {"error":"invalid user"}
-        }
-    }},
-    401: {"description": "Электронная почта пользователя не подтверждена", "content": {
-        "application/json": {
-            "example": {"error":"not verified"}
         }
     }},
     200: {"description": "Успешный вход", "content": {
@@ -87,12 +82,10 @@ async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     """
     Авторизация пользователя по почте и паролю. Возвращает JWT-токены для дальнейших запросов
     """
-    if not crud.get_user_by_email(db, auth.email):
-        return JSONResponse({"error":"invalid user"}, status.HTTP_404_NOT_FOUND)
-    if not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
-        return JSONResponse({"error":"invalid user"}, status.HTTP_404_NOT_FOUND)
+    if not crud.get_user_by_email(db, auth.email) or not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
+        return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
     if not crud.get_email_verified(db, auth.email):
-        return JSONResponse({"error":"not verified"}, status.HTTP_401_UNAUTHORIZED)
+        return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
     return {"access_token": jwt_handler.access_token(crud.get_id(db, auth.email)),
             "refresh_token": jwt_handler.refresh_token(crud.get_id(db, auth.email))}
 
