@@ -66,9 +66,9 @@ async def favicon():
     return FileResponse("QUORE.png")
 
 @app.post("/login", tags=["Авторизация"], responses={
-    401: {"description": "Неудачная попытка входа", "content": {
+    401: {"description": "Электронная почта пользователя не подтверждена", "content": {
         "application/json": {
-            "example": {"error":"invalid user"}
+            "example": {"error":"not verified"}
         }
     }},
     200: {"description": "Успешный вход", "content": {
@@ -82,7 +82,9 @@ async def login(auth: schemas.AuthCreate, db: Session = Depends(get_db)):
     """
     Авторизация пользователя по почте и паролю. Возвращает JWT-токены для дальнейших запросов
     """
-    if not crud.get_user_by_email(db, auth.email) or not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
+    if not crud.get_user_by_email(db, auth.email):
+        return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
+    if not hash.verify(auth.password, crud.get_hashed(db, auth.email)):
         return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
     if not crud.get_email_verified(db, auth.email):
         return JSONResponse({"error":"invalid user"}, status.HTTP_401_UNAUTHORIZED)
