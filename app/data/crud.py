@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session, load_only
-from sqlalchemy import extract, func
 from typing import List
 from random import sample
 from datetime import datetime
@@ -12,11 +11,17 @@ def get_user_by_email(db: Session, email: str):
 def get_hashed(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().hashed
 
+def get_auth_profile(db: Session, id: int):
+    return db.query(models.Auth).filter(models.Auth.user_id == id).first()
+
 def get_id(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().user_id
 
-def get_profile(db: Session, id: str):
+def get_profile(db: Session, id: int):
     return db.query(models.Profile).options(load_only(models.Profile.name, models.Profile.status, models.Profile.about, models.Profile.age)).get(id)
+
+def get_full_profile(db: Session, id: int):
+    return db.query(models.Profile).get(id)
 
 def create_profile(db: Session, profile: schemas.ProfileCreate) -> models.Profile:
     db_profile = models.Profile(name=profile.name, birth=profile.birth, sex=profile.sex)
@@ -94,6 +99,13 @@ def verify_auth(db: Session, id: str):
     db_auth.verified = True
     db.commit()
 
+def delete_user(db: Session, id: int):
+    profile = db.query(models.Profile).filter(models.Profile.id == id).first()
+    auth = db.query(models.Auth).filter(models.Auth.user_id == id).first()
+    db.delete(profile)
+    db.delete(auth)
+    db.commit()
+
 def get_verified(db: Session, id: str):
     return db.query(models.Auth).filter(models.Auth.id == id).first().verified
 
@@ -105,3 +117,20 @@ def get_auth(db: Session, id: str):
 
 def get_email_sent(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().sent
+
+def get_all_likes_name_users(db: Session, id: int):
+    initiator =  db.query(models.Like).filter(models.Like.initiator == id).options(load_only(models.Like.target)).all()
+    target = db.query(models.Like).filter(models.Like.target == id, models.Like.match == True).options(load_only(models.Like.initiator)).all()
+    result = []
+    for like in initiator:
+        result.append(db.query(models.Profile).get(like.target).name)
+    for like in target:
+        result.append(db.query(models.Profile).get(like.initiator).name)
+    return result
+
+def get_all_dislikes_name_users(db: Session, id: int):
+    initiator =  db.query(models.Dislike).filter(models.Dislike.initiator == id).options(load_only(models.Dislike.target)).all()
+    result = []
+    for dislike in initiator:
+        result.append(db.query(models.Profile).get(dislike.target).name)
+    return result

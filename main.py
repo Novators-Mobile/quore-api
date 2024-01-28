@@ -278,7 +278,7 @@ async def cards(agefrom: int = Query(None, description="Старше"), ageto: i
 @app.get("/like", tags=["Рекомандации"], responses={
     200: {"description": "Лайк создан", "content": {
         "application/json": {
-            "example": {"result": "liked"}
+            "example": {"result": "success"}
         }
     }},
     201: {"description": "Лайк оказался совместным - мэтч", "content": {
@@ -309,7 +309,7 @@ async def like(id: int = Query(..., description="ID профиля"), db: Sessio
 @app.get("/dislike", tags=["Рекомандации"], responses={
     200: {"description": "Дизлайк создан", "content": {
         "application/json": {
-            "example": {"result": "liked"}
+            "example": {"result": "success"}
         }
     }},
     404: {"description": "Пользователь не найден", "content": {
@@ -375,3 +375,57 @@ async def profile_edit(name: str = Query(None, description="Имя пользо�
     if about != None:
         crud.change_about(db, id, about)
     return {"result": "success"}
+
+@app.delete("/profile", tags=["Управление профилем"], responses={
+    200: {"description": "Профиль удален", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }},
+    401: {"description": "Пароль или токен неправильные", "content": {
+        "application/json": {
+            "example": {"error": "not verified"}
+        }
+    }},
+})
+async def profile_delete(password: str, db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
+    if auth:
+        if not hash.verify(password, auth.hashed):
+            return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
+    else:
+        return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
+    crud.delete_user(db, jwt_handler.access_decode(token)['id'])
+    return JSONResponse({"result": "success"}, status.HTTP_200_OK)
+
+@app.get("/gdpr", tags=["Управление профилем"], responses={
+    200: {"description": "Информация отправленна на электронную почту", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }},
+    401: {"description": "Пароль или токен неправильные", "content": {
+        "application/json": {
+            "example": {"error": "not verified"}
+        }
+    }},
+})
+async def gdpr_request(background_tasks: BackgroundTasks, password: str, db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
+    profile = crud.get_profile(db, jwt_handler.access_decode(token)['id'])
+    if auth:
+        if not hash.verify(password, auth.hashed):
+            return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
+    else:
+        return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
+    with open('gdpr.html', 'r') as file:
+        template = jinja.from_string(file.read().rstrip())
+    likes = crud.get_all_likes_name_users(db, jwt_handler.access_decode(token)['id'])
+    dislikes = crud.get_all_dislikes_name_users(db, jwt_handler.access_decode(token)['id'])
+    message = MessageSchema(
+        subject="Ваш запрос на получение информации",
+        recipients=[auth.email],
+        body=template.render(name=profile.name, birth=profile.birth, age=profile.age, sex=profile.sex, about=profile.about, status=profile.status, email=auth.email, sent=auth.sent, likes=likes, dislikes=dislikes),
+        subtype=MessageType.html)
+    background_tasks.add_task(mail.send_message, message)
+    return JSONResponse({"result": "success"}, status.HTTP_200_OK)
