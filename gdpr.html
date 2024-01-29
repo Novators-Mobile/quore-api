@@ -7,16 +7,18 @@
 О себе: {{ about }}<br>
 Отображаемый статус: {{ status }}<br>
 Адрес электронной почты: {{ email }}<br>
-Дата регистрации: {{ sent }}<br><br>
+Дата регистрации: {{ sent }} (UTC)<br><br>
 
 Вы поставили лайк следующим пользователям:<br>
 {% for like in likes %}
-    {{ like }}<br>
+    Имя: {{ like[0] }}<br>
+    Поставлен: {{ like[1] }} (UTC)<br>
 {% endfor %}
 <br>
 Вы поставили дизлайк следующим пользователям:<br>
 {% for dislike in dislikes %}
-    {{ dislike }}<br>
+    Имя: {{ dislike[0] }}<br>
+    Поставлен: {{ dislike[1] }} (UTC)<br>
 {% endfor %}
 <br>
 Если вы не запрашивали информацию - срочно свяжитесь с нами: security@novatorsmobile.ru<br>

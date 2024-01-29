@@ -79,6 +79,9 @@ def match(db: Session, initiator: id, target: id):
 def get_like(db: Session, initiator: id, target: id):
     return db.query(models.Like).filter(models.Like.initiator == initiator, models.Like.target == target).first()
 
+def get_dislike(db: Session, initiator: int, target: int):
+    return db.query(models.Dislike).filter(models.Dislike.initiator == initiator, models.Dislike.target == target).first()
+
 def dislike(db: Session, initiator: id, target: id):
     db_dislike = models.Dislike(initiator=initiator, target=target)
     db.add(db_dislike)
@@ -86,6 +89,16 @@ def dislike(db: Session, initiator: id, target: id):
     db.refresh(db_dislike)
     return db_dislike
     
+def delete_like(db: Session, initiator: int, target: int):
+    like = db.query(models.Like).filter(models.Like.initiator == initiator, models.Like.target == target).first()
+    db.delete(like)
+    db.commit()
+
+def delete_dislike(db: Session, initiator: int, target: int):
+    dislike = db.query(models.Dislike).filter(models.Dislike.initiator == initiator, models.Dislike.target == target).first()
+    db.delete(dislike)
+    db.commit()
+
 def get_all_profiles(db: Session, id: int, agefrom: int, ageto: int) -> List[models.Profile]:
     result = db.query(models.Profile).filter(models.Profile.id != id, models.Profile.age >= agefrom, models.Profile.age <= ageto).options(load_only(models.Profile.name, models.Profile.status, models.Profile.age)).all()
     return result
@@ -102,8 +115,17 @@ def verify_auth(db: Session, id: str):
 def delete_user(db: Session, id: int):
     profile = db.query(models.Profile).filter(models.Profile.id == id).first()
     auth = db.query(models.Auth).filter(models.Auth.user_id == id).first()
+    likes_initiator = db.query(models.Like).filter(models.Like.initiator == id).all()
+    likes_target = db.query(models.Like).filter(models.Like.target == id).all()
+    dislikes = db.query(models.Dislike).filter(models.Dislike.initiator == id).all()
     db.delete(profile)
     db.delete(auth)
+    for item in likes_initiator:
+        db.delete(item)
+    for item in likes_target:
+        db.delete(item)
+    for item in dislikes:
+        db.delete(item)
     db.commit()
 
 def get_verified(db: Session, id: str):
@@ -118,19 +140,25 @@ def get_auth(db: Session, id: str):
 def get_email_sent(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().sent
 
+def get_likes(db: Session, id: int):
+    return db.query(models.Like).filter(models.Like.initiator == id).options(load_only(models.Like.initiator, models.Like.target, models.Like.match)).all() + db.query(models.Like).filter(models.Like.target == id, models.Like.match == True).options(load_only(models.Like.initiator, models.Like.target, models.Like.match)).all()
+
+def get_dislikes(db: Session, id: int):
+    return db.query(models.Dislike).filter(models.Dislike.initiator == id).options(load_only(models.Dislike.target)).all()
+
 def get_all_likes_name_users(db: Session, id: int):
     initiator =  db.query(models.Like).filter(models.Like.initiator == id).options(load_only(models.Like.target)).all()
     target = db.query(models.Like).filter(models.Like.target == id, models.Like.match == True).options(load_only(models.Like.initiator)).all()
     result = []
-    for like in initiator:
-        result.append(db.query(models.Profile).get(like.target).name)
-    for like in target:
-        result.append(db.query(models.Profile).get(like.initiator).name)
+    for likeObject in initiator:
+        result.append((db.query(models.Profile).get(likeObject.target).name, likeObject.created))
+    for likeObject in target:
+        result.append((db.query(models.Profile).get(likeObject.initiator).name, likeObject.created))
     return result
 
 def get_all_dislikes_name_users(db: Session, id: int):
     initiator =  db.query(models.Dislike).filter(models.Dislike.initiator == id).options(load_only(models.Dislike.target)).all()
     result = []
-    for dislike in initiator:
-        result.append(db.query(models.Profile).get(dislike.target).name)
+    for dislikeObject in initiator:
+        result.append((db.query(models.Profile).get(dislikeObject.target).name, dislikeObject.created))
     return result

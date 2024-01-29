@@ -204,7 +204,7 @@ async def verify(id: str, db: Session = Depends(get_db)):
         }
     }}
 })
-async def resend(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def resend(background_tasks: BackgroundTasks, email: str, db: Session = Depends(get_db)):
     """
     Запрос повторной отправки письма на почту. Можно вызвать только раз в 45 секунд.
     """
@@ -230,17 +230,20 @@ async def resend(email: str, background_tasks: BackgroundTasks, db: Session = De
     crud.change_auth_sent(db, email, datetime.datetime.today())
     return {"result": "success"}
 
-@app.get("/refresh", tags=["Авторизация"])
+@app.get("/refresh", tags=["Авторизация"], responses={
+    200: {"description": "Токены обновлены", "content": {
+        "application/json": {
+            "example": {"access_token": "access token",
+                        "refresh_token": "refresh token"}
+        }
+    }}
+})
 async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
     """
-    Обновление access token. Требуется авторизация по refresh token через заголовок Authorization: Bearer TOKEN
-    НЕ РАБОТАЕТ!!!
+    Обновление access token и refresh token. Требуется авторизация по refresh token через заголовок Authorization: Bearer TOKEN
     """
-    try:
-        id = jwt_handler.refresh_decode(token)['id']
-    except:
-        return {"error": "invalid token"}
-    return {"access_token": jwt_handler.access_token(id)}
+    return {"access_token": jwt_handler.access_token(jwt_handler.refresh_decode(token)),
+            "refresh_token": jwt_handler.refresh_token(jwt_handler.refresh_decode(token))}
 
 @app.get("/cards", tags=["Рекомандации"], responses={
     200: {"description": "Карточки пользователей", "content": {
@@ -276,6 +279,28 @@ async def cards(agefrom: int = Query(None, description="Старше"), ageto: i
         return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'], agefrom, ageto)
     
 @app.get("/like", tags=["Рекомандации"], responses={
+    200: {"description": "Лайки пользователя. Выводится неправильно, дорабатывается!!!", "content": {
+        "application/json": {
+            "example": [
+                {
+                    "id": 0,
+                    "target": 1
+                },
+                {
+                    "id": 1,
+                    "target": 5
+                }
+            ]
+        }
+    }}
+})
+def get_likes(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Лайки авторизованного пользователя. Выводится неправильно, дорабатывается!!!
+    """
+    return crud.get_likes(db, jwt_handler.access_decode(token)['id'])
+
+@app.post("/like", tags=["Рекомандации"], responses={
     200: {"description": "Лайк создан", "content": {
         "application/json": {
             "example": {"result": "success"}
@@ -286,30 +311,9 @@ async def cards(agefrom: int = Query(None, description="Старше"), ageto: i
             "example": {"result": "match"}
         }
     }},
-    404: {"description": "Пользователь не найден", "content": {
+    202: {"description": "Лайк был создан ранее, лайк снимаем", "content": {
         "application/json": {
-            "example": {"error": "user not found"}
-        }
-    }}
-})
-async def like(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
-    """
-    Механизм лайков. При наличии лайка от другого пользователя сообщает о мэтче
-    """
-    if not crud.get_profile(db, id):
-        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
-    initiator = jwt_handler.refresh_decode(token)['id']
-    if crud.get_like(db, id, initiator):
-        crud.match(db, id, initiator)
-        return JSONResponse({"result": "match"}, status.HTTP_200_OK)
-    else:
-        crud.like(db, initiator, id)
-        return JSONResponse({"result": "liked"}, status.HTTP_201_CREATED)
-    
-@app.get("/dislike", tags=["Рекомандации"], responses={
-    200: {"description": "Дизлайк создан", "content": {
-        "application/json": {
-            "example": {"result": "success"}
+            "example": {"result": "deleted"}
         }
     }},
     404: {"description": "Пользователь не найден", "content": {
@@ -318,14 +322,77 @@ async def like(id: int = Query(..., description="ID профиля"), db: Sessio
         }
     }}
 })
-async def dislike(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def like_profile(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
-    Дизлайки
+    Поставить лайк пользователю. Если лайк уже поставлен - лайк удаляется. Если был дизлайк - удаляется дизлайк и ставится лайк. При наличии лайка от другого пользователя сообщает о мэтче.
     """
     if not crud.get_profile(db, id):
         return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    initiator = jwt_handler.refresh_decode(token)['id']
+    if crud.get_like(db, initiator, id):
+        crud.delete_like(db, initiator, id)
+        return JSONResponse({"result": "deleted"}, status.HTTP_202_ACCEPTED)
+    if crud.get_like(db, id, initiator):
+        crud.match(db, id, initiator)
+        return JSONResponse({"result": "match"}, status.HTTP_200_OK)
+    else:
+        if crud.get_dislike(db, initiator, id):
+            crud.delete_dislike(db, initiator, id)
+        crud.like(db, initiator, id)
+        return JSONResponse({"result": "liked"}, status.HTTP_201_CREATED)
+
+@app.get("/dislike", tags=["Рекомандации"], responses={
+    200: {"description": "Дизлайки пользователя", "content": {
+        "application/json": {
+            "example": [
+                {
+                    "id": 0,
+                    "target": 1
+                },
+                {
+                    "id": 1,
+                    "target": 5
+                }
+            ]
+        }
+    }}
+})
+async def get_dislikes(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Дизлайки авторизованного пользователя
+    """
+    return crud.get_dislikes(db, jwt_handler.access_decode(token)['id'])
+
+@app.post("/dislike", tags=["Рекомандации"], responses={
+    201: {"description": "Дизлайк создан", "content": {
+        "application/json": {
+            "example": {"result": "disliked"}
+        }
+    }},
+    202: {"description": "Дизлайк удален", "content": {
+        "application/json": {
+            "example": {"result": "deleted"}
+        }
+    }},
+    404: {"description": "Пользователь не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }}
+})
+async def dislike_profile(id: int = Query(..., description="ID профиля"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Поставить профилю дизлайк. Если был лайк - удаляется лайк и ставится дизлайк. Если дизлайк уже поставлен - дизлайк удаляется.
+    """
+    if not crud.get_profile(db, id):
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    if crud.get_dislike(db, jwt_handler.refresh_decode(token)['id'], id):
+        crud.delete_dislike(db, jwt_handler.refresh_decode(token)['id'], id)
+        return JSONResponse({"result": "deleted"}, status.HTTP_202_ACCEPTED)
+    if crud.get_like(db, jwt_handler.refresh_decode(token)['id'], id):
+        crud.delete_like(db, jwt_handler.refresh_decode(token)['id'], id)
     crud.dislike(db, jwt_handler.refresh_decode(token)['id'], id)
-    return JSONResponse({"result": "success"}, status.HTTP_200_OK)
+    return JSONResponse({"result": "disliked"}, status.HTTP_201_CREATED)
 
 @app.get("/profile", tags=["Управление профилем"], responses={
     200: {"description": "Информация о профиле", "content": {
@@ -388,7 +455,10 @@ async def profile_edit(name: str = Query(None, description="Имя пользо�
         }
     }},
 })
-async def profile_delete(password: str, db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def profile_delete(password: str = Query(..., description="Пароль пользователя"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Удаление профиля и другой связанной информации
+    """
     auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
     if auth:
         if not hash.verify(password, auth.hashed):
@@ -410,7 +480,10 @@ async def profile_delete(password: str, db: Session = Depends(get_db), token = D
         }
     }},
 })
-async def gdpr_request(background_tasks: BackgroundTasks, password: str, db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def gdpr_request(background_tasks: BackgroundTasks, password: str = Query(..., description="Пароль пользователя"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Запрос информации о пользователе. Требуется в соответствии с федеральным законом №152-ФЗ "О персональных данных" Российской федерации и Общим регламентом защиты персональных данных (GDPR) Европейского союза
+    """
     auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
     profile = crud.get_profile(db, jwt_handler.access_decode(token)['id'])
     if auth:

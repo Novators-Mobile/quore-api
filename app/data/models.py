@@ -33,6 +33,7 @@ class Like(database.base):
     initiator = Column(Integer(), ForeignKey('profiles.id'))
     target = Column(Integer(), ForeignKey('profiles.id'))
     match = Column(Boolean(), default=False)
+    created = Column(DateTime(), nullable=False, default=datetime.datetime.now)
 
 class Dislike(database.base):
     __tablename__ = "dislikes"
@@ -40,3 +41,4 @@ class Dislike(database.base):
     id = Column(Integer(), primary_key=True, unique=True, autoincrement=True)
     initiator = Column(Integer(), ForeignKey('profiles.id'))
     target = Column(Integer(), ForeignKey('profiles.id'))
+    created = Column(DateTime(), nullable=False, default=datetime.datetime.now)
