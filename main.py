@@ -328,7 +328,7 @@ async def like_profile(id: int = Query(..., description="ID профиля"), db
     """
     if not crud.get_profile(db, id):
         return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
-    initiator = jwt_handler.refresh_decode(token)['id']
+    initiator = jwt_handler.access_decode(token)['id']
     if crud.get_like(db, initiator, id):
         crud.delete_like(db, initiator, id)
         return JSONResponse({"result": "deleted"}, status.HTTP_202_ACCEPTED)
@@ -386,12 +386,12 @@ async def dislike_profile(id: int = Query(..., description="ID профиля"),
     """
     if not crud.get_profile(db, id):
         return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
-    if crud.get_dislike(db, jwt_handler.refresh_decode(token)['id'], id):
-        crud.delete_dislike(db, jwt_handler.refresh_decode(token)['id'], id)
+    if crud.get_dislike(db, jwt_handler.access_decode(token)['id'], id):
+        crud.delete_dislike(db, jwt_handler.access_decode(token)['id'], id)
         return JSONResponse({"result": "deleted"}, status.HTTP_202_ACCEPTED)
-    if crud.get_like(db, jwt_handler.refresh_decode(token)['id'], id):
-        crud.delete_like(db, jwt_handler.refresh_decode(token)['id'], id)
-    crud.dislike(db, jwt_handler.refresh_decode(token)['id'], id)
+    if crud.get_like(db, jwt_handler.access_decode(token)['id'], id):
+        crud.delete_like(db, jwt_handler.access_decode(token)['id'], id)
+    crud.dislike(db, jwt_handler.access_decode(token)['id'], id)
     return JSONResponse({"result": "disliked"}, status.HTTP_201_CREATED)
 
 @app.get("/profile", tags=["Управление профилем"], responses={
@@ -417,7 +417,7 @@ async def profile_get(id: int = Query(None, description="ID профиля. Пр
     Полная информация о профиле
     """
     if id == None:
-        id = jwt_handler.refresh_decode(token)['id']
+        id = jwt_handler.access_decode(token)['id']
     result = crud.get_profile(db, id)
     if not result:
         return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
@@ -434,7 +434,7 @@ async def profile_edit(name: str = Query(None, description="Имя пользо�
     """
     Изменение информации профиля авторизованного пользователя
     """
-    id = jwt_handler.refresh_decode(token)['id']
+    id = jwt_handler.access_decode(token)['id']
     if name != None:
         crud.change_name(db, id, name)
     if status != None:
