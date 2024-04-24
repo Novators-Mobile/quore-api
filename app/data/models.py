@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, CheckConstraint, DateTime, extract, func
+from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, CheckConstraint, DateTime, extract, func, ARRAY
 from sqlalchemy.orm import relationship, column_property
 import datetime
 from app.data import database
@@ -13,6 +13,9 @@ class Profile(database.base):
     sex = Column(String(), nullable=False)
     about = Column(String(), nullable=True, default="")
     status = Column(String(), nullable=True, default="")
+    avatar = Column(Boolean(), default=False)
+    images = Column(ARRAY(String), default=[])
+    uploaded = Column(Integer(), nullable=True, default=0)
     auth = relationship("Auth")
 
 class Auth(database.base):
