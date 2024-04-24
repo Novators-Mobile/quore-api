@@ -85,6 +85,7 @@ jobs:
             "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}"
             "MAIL_FROM=${{ secrets.MAIL_FROM }}"
             "MAIL_SERVER=${{ secrets.MAIL_SERVER }}"
+            "S3_SECRET=${{ secrets.S3_SECRET }}"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

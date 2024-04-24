@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Response, status, Depends, BackgroundTasks, Query
+from fastapi import FastAPI, status, Depends, BackgroundTasks, Query, Body
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 import jinja2, datetime
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from app.auth import hash, jwt_handler, jwt_bearer, mail
-from app.data import crud, schemas
+from app.data import crud, schemas, media
 from app.data.database import session, engine, base
 import re, random, string
 
@@ -16,6 +16,10 @@ tags_metadata = [
     {
         "name": "Рекомандации",
         "description": "Запросы для работы с основным экраном рекомендаций. Требуется авторизация по JWT-токену через заголовок Authorization: Bearer TOKEN"
+    },
+    {
+        "name": "Галерея",
+        "description": "Галерея изображений, загруженных пользователем в публичный доступ"
     },
     {
         "name": "Запросы для пользователей",
@@ -394,6 +398,69 @@ async def dislike_profile(id: int = Query(..., description="ID профиля"),
     crud.dislike(db, jwt_handler.access_decode(token)['id'], id)
     return JSONResponse({"result": "disliked"}, status.HTTP_201_CREATED)
 
+@app.post("/images", tags=["Галерея"], responses={
+    200: {"description": "Изображение успешно загружен", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }}
+})
+async def post_image(image: bytes = Body(None, description="Изображение"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Загрузить изображение в публичный доступ
+    """
+    id = jwt_handler.access_decode(token)['id']
+    media.upload_image(image, id, crud.add_image(db, id))
+    return {"result": "success"}
+
+@app.get("/images", tags=["Галерея"], responses={
+    200: {"description": "Все изображения пользователя", "content": {
+        "application/json": {
+            "example": [
+                "https://novatorsmobile.ru/s3/images/1_1.jpg?AWSAccessKeyId=quoreapi&Signature=YW50b24gbG9iYW5vdg==&Expires=1168335660",
+                "https://novatorsmobile.ru/s3/images/1_2.jpg?AWSAccessKeyId=quoreapi&Signature=YWxleGFuZHJhIHNhdmVsZXZh&Expires=1168335660",
+                "https://novatorsmobile.ru/s3/images/1_3.jpg?AWSAccessKeyId=quoreapi&Signature=YW5hc3Rhc2lhIGJvYmluYQ==&Expires=1168335660",
+            ]
+        }
+    }},
+    404: {"description": "Пользователь не существует", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }}
+})
+async def get_images(id: int = Query(None, description="ID профиля. При отсутствии параметра возвращается информация об авторизованном пользователе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Выдача всех изображений, выложенным пользователем в публичный доступ
+    """
+    if id == None:
+        id = jwt_handler.access_decode(token)['id']
+    result = crud.get_profile(db, id)
+    if not result:
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    return media.get_images(crud.get_images(db, id))
+
+@app.delete("/images", tags=["Галерея"], responses={
+    200: {"description": "Удаление изображения", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }},
+    403: {"description": "Изображение не существует или не принадлежит пользователю", "content": {
+        "application/json": {
+            "example": {"error": "no access"}
+        }
+    }}
+})
+async def delete_image(file: str = Query(..., description="Имя файла"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    id = jwt_handler.access_decode(token)['id']
+    if file in crud.get_images(db, id):
+        media.delete_image(file)
+        crud.delete_image(db, id, file)
+        return {"result": "success"}
+    else:
+        return JSONResponse({"error": "no access"}, status.HTTP_403_FORBIDDEN)
+
 @app.get("/profile", tags=["Управление профилем"], responses={
     200: {"description": "Информация о профиле", "content": {
         "application/json": {
@@ -402,7 +469,8 @@ async def dislike_profile(id: int = Query(..., description="ID профиля"),
                 "name": "Ivan Ivanov",
                 "about": "Somebody once told me the world is gonna roll me. I ain't the sharpest tool in the shed.",
                 "age": 18,
-                "status": "Love cats and FastAPI"
+                "status": "Love cats and FastAPI",
+                "avatar": "https://novatorsmobile.ru/s3/images/0.jpg?AWSAccessKeyId=quoreapi&Signature=Tk9WQVRPUlNNT0JJTEU=&Expires=1168335660"
             }
         }
     }},
@@ -430,7 +498,7 @@ async def profile_get(id: int = Query(None, description="ID профиля. Пр
         }
     }}
 })
-async def profile_edit(name: str = Query(None, description="Имя пользователя"), status: str = Query(None, description="Отображаемый статус"), about: str = Query(None, description="О себе"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def profile_edit(name: str = Query(None, description="Имя пользователя"), status: str = Query(None, description="Отображаемый статус"), about: str = Query(None, description="О себе"), avatar: bytes = Body(None, description="Аватар"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Изменение информации профиля авторизованного пользователя
     """
@@ -441,6 +509,9 @@ async def profile_edit(name: str = Query(None, description="Имя пользо�
         crud.change_status(db, id, status)
     if about != None:
         crud.change_about(db, id, about)
+    if avatar != None:
+        crud.create_avatar(db, id)
+        media.upload_avatar(avatar, id)
     return {"result": "success"}
 
 @app.delete("/profile", tags=["Управление профилем"], responses={
@@ -459,13 +530,16 @@ async def profile_delete(password: str = Query(..., description="Пароль п
     """
     Удаление профиля и другой связанной информации
     """
+    id = jwt_handler.access_decode(token)['id']
     auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
     if auth:
         if not hash.verify(password, auth.hashed):
             return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
     else:
         return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
-    crud.delete_user(db, jwt_handler.access_decode(token)['id'])
+    media.delete_all_images(crud.get_images(db, id))
+    media.delete_avatar(id)
+    crud.delete_user(db, id)
     return JSONResponse({"result": "success"}, status.HTTP_200_OK)
 
 @app.get("/gdpr", tags=["Управление профилем"], responses={
