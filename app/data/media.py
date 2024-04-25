@@ -15,7 +15,7 @@ def get_avatar(id: str | int):
     return s3_client.generate_presigned_url('get_object',
                                                     Params={'Bucket': 'avatars',
                                                             'Key': str(id) + '.png'},
-                                                    ExpiresIn=60).replace('s3:8000', host)
+                                                    ExpiresIn=60).replace('s3:8000', host).replace('http://', "https://")
 
 def delete_avatar(id: str | int):
     s3_client.delete_object(Bucket="avatars", Key=str(id) + '.png')
@@ -28,7 +28,7 @@ def get_images(filenames: list):
     return list(map(lambda name: s3_client.generate_presigned_url('get_object',
                                                     Params={'Bucket': 'gallery',
                                                             'Key': name},
-                                                    ExpiresIn=60).replace('s3:8000', host), filenames))
+                                                    ExpiresIn=60).replace('s3:8000', host).replace('http://', "https://"), filenames))
 
 def delete_image(filename: str):
     s3_client.delete_object(Bucket="gallery", Key=filename)

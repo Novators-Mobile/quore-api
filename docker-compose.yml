@@ -37,10 +37,10 @@ services:
     volumes:
       - s3_data:/usr/src/app/localData
       - s3_metadata:/usr/src/app/localMetadata
+      - ./s3config.json:/usr/src/app/config.json
     environment:
       - SCALITY_ACCESS_KEY_ID=quoreapi
       - SCALITY_SECRET_ACCESS_KEY=${S3_SECRET}
-      - ENDPOINT=s3
     expose:
       - 8000
   nginx:
