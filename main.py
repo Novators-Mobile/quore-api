@@ -43,7 +43,7 @@ app = FastAPI(title="Quore API",
                   "email": "admin@novatorsmobile.ru"
               },
               openapi_tags=tags_metadata,
-              root_path='/api')
+              root_path='/' + environ['URL_PATH'])
 mail = FastMail(mail.configuration)
 jinja = jinja2.Environment()
 
