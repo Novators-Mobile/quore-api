@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 import jinja2, datetime
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, MessageType
+from os import environ
 from app.auth import hash, jwt_handler, jwt_bearer, mail
 from app.data import crud, schemas, media
 from app.data.database import session, engine, base
@@ -152,7 +153,10 @@ async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCr
         recipients=[auth.email],
         body=template.render(id=generated_id),
         subtype=MessageType.html)
-    background_tasks.add_task(mail.send_message, message)
+    if int(environ["DEBUG"]):
+        crud.verify_auth(db, generated_id)
+    else:
+        background_tasks.add_task(mail.send_message, message)
     return {"result": "success"}
 
 @app.get("/verify/{id}", tags=["Запросы для пользователей"], response_class=HTMLResponse, responses={
@@ -405,7 +409,7 @@ async def dislike_profile(id: int = Query(..., description="ID профиля"),
         }
     }}
 })
-async def post_image(image: bytes = Body(None, description="Изображение"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def post_image(image: bytes = Body(None, description="Изображение", media_type="image/*"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Загрузить изображение в публичный доступ
     """
@@ -453,6 +457,9 @@ async def get_images(id: int = Query(None, description="ID профиля. Пр�
     }}
 })
 async def delete_image(file: str = Query(..., description="Имя файла"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    """
+    Удаление конкретного изображения
+    """
     id = jwt_handler.access_decode(token)['id']
     if file in crud.get_images(db, id):
         media.delete_image(file)

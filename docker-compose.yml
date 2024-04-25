@@ -59,6 +59,3 @@ volumes:
   postgres_data:
   s3_data:
   s3_metadata:
-
-
-    
