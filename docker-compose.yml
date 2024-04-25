@@ -7,6 +7,7 @@ services:
       - 80
     depends_on:
       - postgres
+      - s3
   expo:
     container_name: expo
     image: ghcr.io/novators-mobile/quore:master
@@ -30,6 +31,18 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+  s3:
+    image: zenko/cloudserver:latest-0.0.0
+    container_name: s3
+    volumes:
+      - s3_data:/usr/src/app/localData
+      - s3_metadata:/usr/src/app/localMetadata
+      - ./s3config.json:/usr/src/app/config.json
+    environment:
+      - SCALITY_ACCESS_KEY_ID=quoreapi
+      - SCALITY_SECRET_ACCESS_KEY=${S3_SECRET}
+    expose:
+      - 8000
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -44,6 +57,5 @@ services:
       - api
 volumes:
   postgres_data:
-
-
-    
+  s3_data:
+  s3_metadata:

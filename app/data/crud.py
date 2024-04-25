@@ -1,4 +1,6 @@
+from app.data import media
 from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 from random import sample
 from datetime import datetime
@@ -18,7 +20,39 @@ def get_id(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().user_id
 
 def get_profile(db: Session, id: int):
-    return db.query(models.Profile).options(load_only(models.Profile.name, models.Profile.status, models.Profile.about, models.Profile.age)).get(id)
+    profile = db.query(models.Profile).options(load_only(models.Profile.name, models.Profile.status, models.Profile.about, models.Profile.age, models.Profile.avatar)).get(id).__dict__
+    print(profile)
+    if profile['avatar']:
+        profile['avatar'] = media.get_avatar(id)
+    else:
+        profile['avatar'] = None
+    return profile
+
+def get_images(db: Session, id: int):
+    return db.query(models.Profile).filter(models.Profile.id == id).first().images
+
+def add_image(db: Session, id: int):
+    profile = db.query(models.Profile).get(id)
+    profile.images.append(str(id) + '_' + str(profile.uploaded) + '.png')
+    profile.uploaded += 1
+    flag_modified(profile, 'images')
+    db.merge(profile)
+    db.flush()
+    db.commit()
+    return profile.uploaded - 1
+
+def delete_image(db: Session, id: int, file: str):
+    profile = db.query(models.Profile).get(id)
+    profile.images.remove(file)
+    flag_modified(profile, 'images')
+    db.merge(profile)
+    db.flush()
+    db.commit()
+
+def create_avatar(db: Session, id: int):
+    profile = db.query(models.Profile).get(id)
+    profile.avatar = True
+    db.commit()
 
 def get_full_profile(db: Session, id: int):
     return db.query(models.Profile).get(id)
@@ -139,6 +173,11 @@ def get_auth(db: Session, id: str):
 
 def get_email_sent(db: Session, email: str):
     return db.query(models.Auth).filter(models.Auth.email == email).first().sent
+
+def update_avatar(db: Session, id: int, url: str):
+    profile = db.query(models.Profile).get(id)
+    profile.avatar = url
+    db.commit()
 
 def get_likes(db: Session, id: int):
     return db.query(models.Like).filter(models.Like.initiator == id).options(load_only(models.Like.initiator, models.Like.target, models.Like.match)).all() + db.query(models.Like).filter(models.Like.target == id, models.Like.match == True).options(load_only(models.Like.initiator, models.Like.target, models.Like.match)).all()
