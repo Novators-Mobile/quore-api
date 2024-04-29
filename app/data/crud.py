@@ -205,7 +205,7 @@ def get_all_profiles(db: Session, id: int, agefrom: int, ageto: int) -> List[mod
         else:
             profile_dict['avatar'] = None
         if profile_dict['longitude'] and profile_dict['latitude'] and user.latitude and user.longitude:
-            profile_dict['distance'] = geopy.distance.geodesic((profile_dict['latitude'], profile_dict['longitude']), (user.latitude, user.longitude)).km
+            profile_dict['distance'] = round(geopy.distance.geodesic((profile_dict['latitude'], profile_dict['longitude']), (user.latitude, user.longitude)).km, 1)
         del profile_dict['longitude']
         del profile_dict['latitude']
         result.append(profile_dict)
