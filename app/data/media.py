@@ -35,3 +35,17 @@ def delete_image(filename: str):
 
 def delete_all_images(filenames: list):
     map(lambda name: s3_client.delete_object(Bucket="gallery", Key=name), filenames)
+
+def upload_chat(files: list[bytes], id: str | int):
+    s3_client.create_bucket(Bucket="chat")
+    result = []
+    for i in range(len(files)):
+        s3_client.upload_fileobj(io.BytesIO(files[i]), "chat", str(id) + '_' + str(i) + '.png')
+        result.append(str(id) + '_' + str(i) + '.png')
+    return result
+
+def get_chat(filenames: list):
+    return list(map(lambda name: s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': 'chat',
+                                                            'Key': name},
+                                                    ExpiresIn=60).replace('s3:8000', host).replace('http://', "https://"), filenames))

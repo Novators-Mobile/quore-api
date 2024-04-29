@@ -8,6 +8,8 @@ services:
     depends_on:
       - postgres
       - s3
+    volumes:
+      - ./firebase.json:/app/app/notify/firebase.json
   expo:
     container_name: expo
     image: ghcr.io/novators-mobile/quore:master

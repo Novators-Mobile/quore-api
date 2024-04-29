@@ -5,7 +5,7 @@ class ProfileCreate(BaseModel):
     name: str
     birth: date
     sex: str
-
+    fcm_token: str
     class Config:
         from_attributes = True
 

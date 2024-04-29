@@ -1,12 +1,14 @@
-from fastapi import FastAPI, status, Depends, BackgroundTasks, Query, Body
+from fastapi import FastAPI, status, Depends, BackgroundTasks, Query, Body, File
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 import jinja2, datetime
 from sqlalchemy.orm import Session
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from os import environ
+from pathlib import Path
 from app.auth import hash, jwt_handler, jwt_bearer, mail
 from app.data import crud, schemas, media
 from app.data.database import session, engine, base
+from app.notify import manager
 import re, random, string
 
 tags_metadata = [
@@ -21,6 +23,10 @@ tags_metadata = [
     {
         "name": "Галерея",
         "description": "Галерея изображений, загруженных пользователем в публичный доступ"
+    },
+    {
+        "name": "Чат",
+        "description": "Запросы для общения между пользователями"
     },
     {
         "name": "Запросы для пользователей",
@@ -143,7 +149,6 @@ async def register(background_tasks: BackgroundTasks, profile: schemas.ProfileCr
     res = crud.create_profile(db, profile)
     generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     while crud.get_auth(db, generated_id) != None:
-        print(crud.get_auth(db, generated_id))
         generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     crud.create_auth(db, auth, res, generated_id)
     with open('confirm.html', 'r') as file:
@@ -224,7 +229,6 @@ async def resend(background_tasks: BackgroundTasks, email: str, db: Session = De
         return JSONResponse({"error": "timeout"}, status.HTTP_425_TOO_EARLY)
     generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     while crud.get_auth(db, generated_id) != None:
-        print(crud.get_auth(db, generated_id))
         generated_id = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(128))
     crud.change_auth_id(db, email, generated_id)
     with open('confirm.html', 'r') as file:
@@ -250,8 +254,8 @@ async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
     """
     Обновление access token и refresh token. Требуется авторизация по refresh token через заголовок Authorization: Bearer TOKEN
     """
-    return {"access_token": jwt_handler.access_token(jwt_handler.refresh_decode(token)),
-            "refresh_token": jwt_handler.refresh_token(jwt_handler.refresh_decode(token))}
+    return {"access_token": jwt_handler.access_token(jwt_handler.refresh_decode(token)['id']),
+            "refresh_token": jwt_handler.refresh_token(jwt_handler.refresh_decode(token)['id'])}
 
 @app.get("/cards", tags=["Рекомандации"], responses={
     200: {"description": "Карточки пользователей", "content": {
@@ -261,22 +265,27 @@ async def refresh(token = Depends(jwt_bearer.JWTRefreshBearer())):
                     "id": 0,
                     "name": "Ivan Ivanov",
                     "age": 18,
-                    "status": "Love cats and FastAPI"
+                    "status": "Love cats and FastAPI",
+                    "avatar": None,
+                    "distance": 0.5934234
                 },
                 {
                     "id": 1,
                     "name": "Peter Petrov",
                     "age": 20,
-                    "status": "Never gonna give you up"
+                    "status": "Never gonna give you up",
+                    "avatar": "https://novatorsmobile.ru/s3/images/1_1.jpg?AWSAccessKeyId=quoreapi&Signature=aG93eW91cmVhZHRoaXM=&Expires=1168335660"
                 }
             ]
         }
     }}
 })
-async def cards(agefrom: int = Query(None, description="Старше"), ageto: int = Query(None, description="Младше"), sex: str = Query(None, description="Пол"),  db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+async def cards(agefrom: int = Query(None, description="Старше"), ageto: int = Query(None, description="Младше"), sex: str = Query(None, description="Пол"), latitude: float = Query(None, description="Широта"), longitude: float = Query(None, description="Долгота"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
     """
     Выдача рекомендации карточек. На данный момент отображаются все пользователи за исключением авторизованного.
     """
+    if latitude and longitude:
+        crud.set_cords(db, jwt_handler.access_decode(token)['id'], latitude, longitude)
     if not agefrom:
         agefrom = 0
     if not ageto:
@@ -287,7 +296,7 @@ async def cards(agefrom: int = Query(None, description="Старше"), ageto: i
         return crud.get_all_profiles(db, jwt_handler.access_decode(token)['id'], agefrom, ageto)
     
 @app.get("/like", tags=["Рекомандации"], responses={
-    200: {"description": "Лайки пользователя. Выводится неправильно, дорабатывается!!!", "content": {
+    200: {"description": "Лайки от других пользователей", "content": {
         "application/json": {
             "example": [
                 {
@@ -337,39 +346,20 @@ async def like_profile(id: int = Query(..., description="ID профиля"), db
     if not crud.get_profile(db, id):
         return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
     initiator = jwt_handler.access_decode(token)['id']
+    if len(crud.get_likes(db, id)) % 5 == 0 and len(crud.get_likes(db, id)) != 0:
+        manager.sendNotification("Ого! Сколько лайков!", "Не забывайте реагировать в ответ",  [crud.get_fcm_token(db, id)])
     if crud.get_like(db, initiator, id):
         crud.delete_like(db, initiator, id)
         return JSONResponse({"result": "deleted"}, status.HTTP_202_ACCEPTED)
     if crud.get_like(db, id, initiator):
         crud.match(db, id, initiator)
+        manager.sendNotification("Чувства взаимны!", "У вас новый мэтч, скорее начните общение", [crud.get_fcm_token(db, id)], {"id": str(initiator)})
         return JSONResponse({"result": "match"}, status.HTTP_200_OK)
     else:
         if crud.get_dislike(db, initiator, id):
             crud.delete_dislike(db, initiator, id)
         crud.like(db, initiator, id)
         return JSONResponse({"result": "liked"}, status.HTTP_201_CREATED)
-
-@app.get("/dislike", tags=["Рекомандации"], responses={
-    200: {"description": "Дизлайки пользователя", "content": {
-        "application/json": {
-            "example": [
-                {
-                    "id": 0,
-                    "target": 1
-                },
-                {
-                    "id": 1,
-                    "target": 5
-                }
-            ]
-        }
-    }}
-})
-async def get_dislikes(db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
-    """
-    Дизлайки авторизованного пользователя
-    """
-    return crud.get_dislikes(db, jwt_handler.access_decode(token)['id'])
 
 @app.post("/dislike", tags=["Рекомандации"], responses={
     201: {"description": "Дизлайк создан", "content": {
@@ -467,6 +457,92 @@ async def delete_image(file: str = Query(..., description="Имя файла"), 
         return {"result": "success"}
     else:
         return JSONResponse({"error": "no access"}, status.HTTP_403_FORBIDDEN)
+
+@app.post("/chat", tags=["Чат"], responses={
+    200: {"description": "Сообщение отправлено", "content": {
+        "application/json": {
+            "example": {"result": "success"}
+        }
+    }},
+    404: {"description": "Пользователь не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }},
+    400: {"description": "Сообщение не может быть пустым", "content": {
+        "application/json": {
+            "example": {"error": "message cant be empty"}
+        }
+    }},
+    409: {"description": "Пользователь не может отправить сообщение самому себе", "content": {
+        "application/json": {
+            "example": {"error": "sender cant be recipient"}
+        }
+    }}
+})
+async def send_message(message: str = Query(None, description="Текст сообщения"), files: list[bytes] = File(None), id: int = Query(..., description="ID получателя"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    if id == jwt_handler.access_decode(token)['id']:
+        return JSONResponse({"error": "sender cant be recipient"}, status.HTTP_409_CONFLICT)
+    if not crud.get_profile(db, id):
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    if message or files:
+        message_object = crud.write_message(db, jwt_handler.access_decode(token)['id'], id, message)
+    else:
+        return JSONResponse({"error": "message cant be empty"}, status.HTTP_400_BAD_REQUEST)
+    if files:
+        filenames = media.upload_chat(files, message_object.id)
+        crud.add_files_to_message(db, message_object.id, filenames)
+    manager.sendNotification("Новое сообщение", "От пользователя " + crud.get_profile_name(db, id), [crud.get_fcm_token(db, id)])
+    return {"result": "success"}
+
+@app.get("/chat", tags=["Чат"], responses={
+    200: {"description": "Все сообщения из чата", "content": {
+        "application/json": {
+            "example": [
+                {
+                    "id": 42,
+                    "attachments": [],
+                    "sender": 0,
+                    "recipient": 1,
+                    "sent": "2024-01-01T02:00:00.000000",
+                    "message": "Wow! We are in Quore documentation"
+                },
+                {
+                    "id": 43,
+                    "attachments": [],
+                    "sender": 1,
+                    "recipient": 0,
+                    "sent": "2024-01-01T02:00:10.673624",
+                    "message": "Do you believe in fate, Neo?"
+                },
+                {
+                    "id": 52,
+                    "attachments": [],
+                    "sender": 0,
+                    "recipient": 1,
+                    "sent": "2024-01-02T21:16:00.000000",
+                    "message": "No."
+                }
+            ]
+        }
+    }},
+    404: {"description": "Пользователь не найден", "content": {
+        "application/json": {
+            "example": {"error": "user not found"}
+        }
+    }},
+    409: {"description": "Пользователь не может отправить сообщение самому себе", "content": {
+        "application/json": {
+            "example": {"error": "sender cant be recipient"}
+        }
+    }}
+})
+async def get_messages(id: int = Query(..., description="ID получателя"), db: Session = Depends(get_db), token = Depends(jwt_bearer.JWTAccessBearer())):
+    if id == jwt_handler.access_decode(token)['id']:
+        return JSONResponse({"error": "sender cant be recipient"}, status.HTTP_409_CONFLICT)
+    if not crud.get_profile(db, id):
+        return JSONResponse({"error": "user not found"}, status.HTTP_404_NOT_FOUND)
+    return crud.get_messages(db, jwt_handler.access_decode(token)['id'], id)
 
 @app.get("/profile", tags=["Управление профилем"], responses={
     200: {"description": "Информация о профиле", "content": {
@@ -566,7 +642,7 @@ async def gdpr_request(background_tasks: BackgroundTasks, password: str = Query(
     Запрос информации о пользователе. Требуется в соответствии с федеральным законом №152-ФЗ "О персональных данных" Российской федерации и Общим регламентом защиты персональных данных (GDPR) Европейского союза
     """
     auth = crud.get_auth_profile(db, jwt_handler.access_decode(token)['id'])
-    profile = crud.get_profile(db, jwt_handler.access_decode(token)['id'])
+    profile = crud.get_full_profile(db, jwt_handler.access_decode(token)['id'])
     if auth:
         if not hash.verify(password, auth.hashed):
             return JSONResponse({"error": "not verified"}, status.HTTP_401_UNAUTHORIZED)
@@ -576,10 +652,15 @@ async def gdpr_request(background_tasks: BackgroundTasks, password: str = Query(
         template = jinja.from_string(file.read().rstrip())
     likes = crud.get_all_likes_name_users(db, jwt_handler.access_decode(token)['id'])
     dislikes = crud.get_all_dislikes_name_users(db, jwt_handler.access_decode(token)['id'])
+    messages = crud.get_all_messages(db, jwt_handler.access_decode(token)['id'])
+    if profile.avatar:
+        avatar = str(profile.id) + '.png'
+    else:
+        avatar = None
     message = MessageSchema(
         subject="Ваш запрос на получение информации",
         recipients=[auth.email],
-        body=template.render(name=profile.name, birth=profile.birth, age=profile.age, sex=profile.sex, about=profile.about, status=profile.status, email=auth.email, sent=auth.sent, likes=likes, dislikes=dislikes),
+        body=template.render(name=profile.name, birth=profile.birth, age=profile.age, sex=profile.sex, about=profile.about, status=profile.status, email=auth.email, sent=auth.sent, likes=likes, dislikes=dislikes, messages=messages, preferences=profile.preferences, avatar=avatar),
         subtype=MessageType.html)
     background_tasks.add_task(mail.send_message, message)
     return JSONResponse({"result": "success"}, status.HTTP_200_OK)

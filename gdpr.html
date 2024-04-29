@@ -4,7 +4,9 @@
 Дата рождения (ГГГГ-ММ-ДД): {{ birth }}<br>
 Возраст: {{ age }} полных лет<br>
 Пол: {{ sex }}<br>
+Аватар: {{ avatar }}<br>
 О себе: {{ about }}<br>
+Предпочтения: {{ preferences }}<br>
 Отображаемый статус: {{ status }}<br>
 Адрес электронной почты: {{ email }}<br>
 Дата регистрации: {{ sent }} (UTC)<br><br>
@@ -21,5 +23,20 @@
     Поставлен: {{ dislike[1] }} (UTC)<br>
 {% endfor %}
 <br>
+Личные сообщения:<br><br>
+{% for user in messages %}
+    Сообщения с пользователем {{ user[0] }}<br><br>
+    {% for message in user[1] %}
+        Отправитель: {{ message["sender"] }}<br>
+        Получатель: {{ message["recipient"] }}<br>
+        Текст: {{ message["message"] }}<br>
+        Прикрепленные изображения: {{ message["attachments"] }}<br>
+        Дата отправления: {{ message["sent"] }} (UTC)<br>
+        <br>
+    {% endfor %}
+    <br>
+{% endfor %}
+<br>
 Если вы не запрашивали информацию - срочно свяжитесь с нами: security@novatorsmobile.ru<br>
+Данное письмо носит исключительно информационный характер и не является юридически значимым документом<br>
 С уважением, команда Novators
